@@ -19,6 +19,7 @@ export interface ShopType {
   name: string;
   description: string;
   logo: string;
+  slug: string;
 }
 
 export interface ContentType {

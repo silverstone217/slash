@@ -119,6 +119,7 @@ export const CONTENTS: ContentType[] = [
       description:
         "Boutique spécialisée dans les accessoires high-tech modernes.",
       logo: "https://images.unsplash.com/photo-1643449689391-f798261a16ee?q=80&w=1480&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      slug: "techzone",
     },
     url: "https://techzone.shop/products/nova-x1",
   },
@@ -146,6 +147,7 @@ export const CONTENTS: ContentType[] = [
       name: "UrbanStyle",
       description: "Marque de vêtements streetwear et lifestyle.",
       logo: "https://images.unsplash.com/photo-1722842655644-869cb12728e7?q=80&w=1421&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      slug: "urbanstyle",
     },
     url: "https://urbanstyle.shop/products/airflow-one",
   },
@@ -173,6 +175,8 @@ export const CONTENTS: ContentType[] = [
       name: "SmartWorld",
       description: "Tout pour la maison et le quotidien connecté.",
       logo: "https://images.unsplash.com/photo-1633421878925-ac220d8f6e4f?q=80&w=1480&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+
+      slug: "smartworld",
     },
     url: "https://smartworld.io/products/zenith-fit-pro",
   },
@@ -200,6 +204,7 @@ export const CONTENTS: ContentType[] = [
       name: "AdventureGear",
       description: "Spécialiste des équipements d’extérieur et d’aventure.",
       logo: "https://images.unsplash.com/photo-1588098596266-0b5fa8e94712?q=80&w=1480&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      slug: "adventuregear",
     },
     url: "https://adventuregear.fr/products/explorer-35l",
   },
@@ -227,7 +232,10 @@ export const CONTENTS: ContentType[] = [
       name: "HomeLight",
       description: "Décoration et accessoires pour un intérieur moderne.",
       logo: "https://images.unsplash.com/photo-1699649169796-85ef07ed3707?q=80&w=1365&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      slug: "homelight",
     },
     url: "https://homelight.fr/products/aurora-led",
   },
 ];
+
+export const SITE_URL = "https://www.otekis.com";

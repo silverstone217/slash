@@ -1,8 +1,9 @@
+import { MoreOptionsButton } from "@/components/MoreOptionsButton";
 import SoundToggleButton from "@/components/SoundToggleButton";
 import { useUserStore } from "@/lib/store";
 import { FONTS, TEXT_SIZE, THEME } from "@/lib/styles";
 import { ContentType } from "@/types";
-import { BACKEND_URL } from "@/utils/data";
+import { BACKEND_URL, SITE_URL } from "@/utils/data";
 import {
   capitalizeText,
   returnCurrencySymbol,
@@ -10,8 +11,9 @@ import {
 } from "@/utils/functions";
 import { Ionicons } from "@expo/vector-icons";
 import { useAudioPlayer } from "expo-audio";
+import * as Haptics from "expo-haptics";
 import { LinearGradient } from "expo-linear-gradient";
-import { useRouter } from "expo-router";
+import { Link, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -19,13 +21,15 @@ import {
   FlatList,
   ImageBackground,
   Linking,
+  Pressable,
+  Share,
   Text,
   TouchableOpacity,
   View,
   ViewToken,
 } from "react-native";
 
-const { height, width } = Dimensions.get("window");
+const { height, width } = Dimensions.get("screen");
 
 const playlist = [
   require("../../assets/sounds/sound1.mp3"),
@@ -49,7 +53,12 @@ export default function FeedScreen() {
   const [shouldPlay, setShouldPlay] = useState(false);
   const [muted, setMuted] = useState(false);
 
-  const { preferences, addViewedProductId } = useUserStore();
+  const {
+    preferences,
+    addViewedProductId,
+    toggleRegisterContent,
+    isContentRegistered,
+  } = useUserStore();
 
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
@@ -58,12 +67,12 @@ export default function FeedScreen() {
   // Lecture aléatoire d’une piste audio
   // Quand currentTrack change, joue la musique
   useEffect(() => {
-    if (shouldPlay) {
+    if (shouldPlay && !muted) {
       player.play();
       player.loop = true;
       setShouldPlay(false);
     }
-  }, [player, shouldPlay]);
+  }, [muted, player, shouldPlay]);
 
   const playRandomTrack = () => {
     const random = playlist[Math.floor(Math.random() * playlist.length)];
@@ -74,6 +83,7 @@ export default function FeedScreen() {
   // Mute toggle
   const toggleMute = () => {
     setMuted((prev) => !prev);
+    Haptics.selectionAsync();
     if (muted) {
       player.play(); // ou resume
     } else {
@@ -158,6 +168,47 @@ export default function FeedScreen() {
   useEffect(() => {
     getResponse();
   }, [getResponse, query]);
+
+  // ---ACTIONS---
+  // 1. register content
+  const handleToggleRegisterContent = (content: ContentType) => {
+    Haptics.selectionAsync();
+    toggleRegisterContent(content);
+  };
+
+  // 2. share content
+  const handleShareContent = async (content: ContentType) => {
+    try {
+      // petit retour haptique comme tu fais déjà
+      await Haptics.selectionAsync();
+
+      // 🔗 lien du contenu (tu l’as déjà dans content.url)
+      const shareUrl = content?.url ?? "https://www.otekis.com/";
+
+      // 📝 message qui sera partagé
+      const message = `Découvre ce produit sur Otekis 💫\n\n${content.product.title}\n${shareUrl}`;
+
+      // 📲 ouverture du menu natif de partage
+      const result = await Share.share({
+        message,
+        url: shareUrl, // utile surtout pour iOS
+        title: content.product.title,
+      });
+
+      // 📋 Optionnel : gestion du résultat (utile si tu veux analytics)
+      if (result.action === Share.sharedAction) {
+        if (result.activityType) {
+          console.log("Partagé via :", result.activityType);
+        } else {
+          console.log("Partage réussi !");
+        }
+      } else if (result.action === Share.dismissedAction) {
+        console.log("Partage annulé.");
+      }
+    } catch (error) {
+      console.error("Erreur lors du partage :", error);
+    }
+  };
 
   return (
     <View style={{ flex: 1, backgroundColor: THEME.background }}>
@@ -315,28 +366,54 @@ export default function FeedScreen() {
               style={{
                 position: "absolute",
                 right: 20,
-                bottom: height * 0.4, // 🔼 Légèrement plus haut qu’avant
+                bottom: height * 0.4,
                 alignItems: "center",
                 gap: 20,
+                zIndex: 20,
               }}
             >
               {[
-                { icon: "bookmark-outline" },
-                { icon: "share-social-outline" },
-                { icon: "ellipsis-vertical" },
-              ].map((btn, i) => (
-                <TouchableOpacity
-                  key={i}
-                  activeOpacity={0.8}
-                  style={{
-                    backgroundColor: "rgba(0,0,0,0.45)",
-                    padding: 12,
-                    borderRadius: 50,
-                  }}
-                >
-                  <Ionicons name={btn.icon as any} size={24} color="#fff" />
-                </TouchableOpacity>
-              ))}
+                {
+                  icon: "bookmark-outline",
+                  second: "bookmark",
+                  action: handleToggleRegisterContent,
+                },
+                { icon: "share-social-outline", action: handleShareContent },
+              ].map((btn, i) => {
+                const isBookmarked =
+                  btn.icon === "bookmark-outline" &&
+                  isContentRegistered(item.product.id);
+
+                return (
+                  <TouchableOpacity
+                    key={i}
+                    activeOpacity={0.7}
+                    onPress={() => btn.action(item)}
+                    style={{
+                      backgroundColor: isBookmarked
+                        ? "rgba(255,255,255,0.12)" // léger fond clair si actif
+                        : "rgba(0,0,0,0.45)",
+                      borderRadius: 40,
+                      padding: 10,
+                      borderWidth: isBookmarked ? 0.8 : 0,
+                      borderColor: "rgba(255,255,255,0.2)",
+                      justifyContent: "center",
+                      alignItems: "center",
+                    }}
+                  >
+                    <Ionicons
+                      name={
+                        isBookmarked ? (btn.second as any) : (btn.icon as any)
+                      }
+                      size={22}
+                      color={isBookmarked ? "#F5C542" : "#FFFFFF"} // or #E6E6E6 for softer white
+                    />
+                  </TouchableOpacity>
+                );
+              })}
+
+              {/* --- MORE OPTIONS --- */}
+              <MoreOptionsButton content={item} />
             </View>
 
             {/* Absolute music controlleur */}
@@ -374,15 +451,21 @@ export default function FeedScreen() {
                     resizeMode="cover"
                   />
                 </View>
-                <Text
-                  style={{
-                    color: THEME.text,
-                    fontFamily: FONTS.subheading,
-                    fontSize: TEXT_SIZE.medium,
-                  }}
+                <Pressable
+                  onPress={() =>
+                    Linking.openURL(`${SITE_URL}/${item.shop.slug}`)
+                  }
                 >
-                  {capitalizeText(item.shop.name)}
-                </Text>
+                  <Text
+                    style={{
+                      color: THEME.text,
+                      fontFamily: FONTS.subheading,
+                      fontSize: TEXT_SIZE.medium,
+                    }}
+                  >
+                    {capitalizeText(item.shop.name)}
+                  </Text>
+                </Pressable>
               </View>
               {/* Titre produit */}
               <Text
