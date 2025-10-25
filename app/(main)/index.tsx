@@ -13,7 +13,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useAudioPlayer } from "expo-audio";
 import * as Haptics from "expo-haptics";
 import { LinearGradient } from "expo-linear-gradient";
-import { Link, useRouter } from "expo-router";
+import { useNavigation, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -49,7 +49,9 @@ export default function FeedScreen() {
   const [lastPlayedId, setLastPlayedId] = useState<string | null>(null);
 
   const [currentTrack, setCurrentTrack] = useState(playlist[0]);
-  const player = useAudioPlayer(currentTrack, { keepAudioSessionActive: true });
+  const player = useAudioPlayer(currentTrack, {
+    keepAudioSessionActive: false,
+  });
   const [shouldPlay, setShouldPlay] = useState(false);
   const [muted, setMuted] = useState(false);
 
@@ -64,15 +66,46 @@ export default function FeedScreen() {
   const [hasMore, setHasMore] = useState(true);
   const [restarted, setRestarted] = useState(false);
 
+  const navigation = useNavigation();
+
   // Lecture aléatoire d’une piste audio
   // Quand currentTrack change, joue la musique
   useEffect(() => {
+    if (!player) return;
+
     if (shouldPlay && !muted) {
+      player.seekTo(0);
       player.play();
       player.loop = true;
       setShouldPlay(false);
     }
   }, [muted, player, shouldPlay]);
+
+  useEffect(() => {
+    if (!player) return;
+
+    const unsubscribeBlur = navigation.addListener("blur", () => {
+      // L’écran n’est plus actif → pause
+      if (player) {
+        player.pause();
+      }
+    });
+
+    const unsubscribeFocus = navigation.addListener("focus", () => {
+      player.seekTo(0);
+      // L’écran redevient actif → relance la musique
+      if (player && !muted) {
+        player.play();
+        player.loop = true;
+      }
+    });
+
+    // Nettoyage
+    return () => {
+      unsubscribeBlur();
+      unsubscribeFocus();
+    };
+  }, [navigation, player, muted]);
 
   const playRandomTrack = () => {
     const random = playlist[Math.floor(Math.random() * playlist.length)];
@@ -308,279 +341,288 @@ export default function FeedScreen() {
         // -------- AFFICHAGE DE CHAQUE ITEM ----
         renderItem={({ item }) => (
           // --- ton rendu existant (inchangé) ---
-          <ImageBackground
-            source={{ uri: item.product.images[0] }}
+          <Pressable
             style={{ height, width, justifyContent: "flex-end" }}
-            resizeMode="contain"
+            onPress={toggleMute}
           >
-            {/* Dégradé sombre */}
-            <LinearGradient
-              colors={["transparent", "rgba(0,0,0,0.9)"]}
-              style={{
-                position: "absolute",
-                bottom: 0,
-                height: "60%",
-                width: "100%",
-              }}
-            />
-            {/* --- Profil --- */}
-            <TouchableOpacity
-              onPress={() => router.push("/profile")}
-              activeOpacity={0.8}
-              style={{
-                position: "absolute",
-                top: 60,
-                left: 20,
-                width: 55,
-                height: 55,
-                borderRadius: 27.5,
-                justifyContent: "center",
-                alignItems: "center",
-              }}
+            <ImageBackground
+              source={{ uri: item.product.images[0] }}
+              style={{ height, width, justifyContent: "flex-end" }}
+              resizeMode="contain"
             >
+              {/* Dégradé sombre */}
               <LinearGradient
-                colors={["#ff7eb3", "#ff758c", "#ffb199"]}
+                colors={["transparent", "rgba(0,0,0,0.9)"]}
                 style={{
                   position: "absolute",
+                  bottom: 0,
+                  height: "60%",
                   width: "100%",
-                  height: "100%",
-                  borderRadius: 27.5,
                 }}
               />
-              <View
+              {/* --- Profil --- */}
+              <TouchableOpacity
+                onPress={() => {
+                  router.push("/profile");
+                  // toggleMute();
+                }}
+                activeOpacity={0.8}
                 style={{
-                  width: 48,
-                  height: 48,
-                  borderRadius: 24,
-                  backgroundColor: THEME.background,
+                  position: "absolute",
+                  top: 60,
+                  left: 20,
+                  width: 55,
+                  height: 55,
+                  borderRadius: 27.5,
                   justifyContent: "center",
                   alignItems: "center",
                 }}
               >
-                <Ionicons name="person" size={24} color={THEME.text} />
-              </View>
-            </TouchableOpacity>
-
-            {/* --- Groupe d’actions flottant --- */}
-            <View
-              style={{
-                position: "absolute",
-                right: 20,
-                bottom: height * 0.4,
-                alignItems: "center",
-                gap: 20,
-                zIndex: 20,
-              }}
-            >
-              {[
-                {
-                  icon: "bookmark-outline",
-                  second: "bookmark",
-                  action: handleToggleRegisterContent,
-                },
-                { icon: "share-social-outline", action: handleShareContent },
-              ].map((btn, i) => {
-                const isBookmarked =
-                  btn.icon === "bookmark-outline" &&
-                  isContentRegistered(item.product.id);
-
-                return (
-                  <TouchableOpacity
-                    key={i}
-                    activeOpacity={0.7}
-                    onPress={() => btn.action(item)}
-                    style={{
-                      backgroundColor: isBookmarked
-                        ? "rgba(255,255,255,0.12)" // léger fond clair si actif
-                        : "rgba(0,0,0,0.45)",
-                      borderRadius: 40,
-                      padding: 10,
-                      borderWidth: isBookmarked ? 0.8 : 0,
-                      borderColor: "rgba(255,255,255,0.2)",
-                      justifyContent: "center",
-                      alignItems: "center",
-                    }}
-                  >
-                    <Ionicons
-                      name={
-                        isBookmarked ? (btn.second as any) : (btn.icon as any)
-                      }
-                      size={22}
-                      color={isBookmarked ? "#F5C542" : "#FFFFFF"} // or #E6E6E6 for softer white
-                    />
-                  </TouchableOpacity>
-                );
-              })}
-
-              {/* --- MORE OPTIONS --- */}
-              <MoreOptionsButton content={item} />
-            </View>
-
-            {/* Absolute music controlleur */}
-            <SoundToggleButton muted={muted} toggleMute={toggleMute} />
-
-            {/* --- Contenu principal --- */}
-            <View
-              style={{
-                position: "absolute",
-                bottom: 100,
-                paddingHorizontal: 20,
-                width: "100%",
-              }}
-            >
-              {/* Infos Shop */}
-              <View
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  marginBottom: 12,
-                }}
-              >
+                <LinearGradient
+                  colors={["#ff7eb3", "#ff758c", "#ffb199"]}
+                  style={{
+                    position: "absolute",
+                    width: "100%",
+                    height: "100%",
+                    borderRadius: 27.5,
+                  }}
+                />
                 <View
                   style={{
-                    width: 45,
-                    height: 45,
-                    borderRadius: 22.5, // cercle parfait
-                    overflow: "hidden", // important pour que l'image respecte le cercle
-                    marginRight: 10,
+                    width: 48,
+                    height: 48,
+                    borderRadius: 24,
+                    backgroundColor: THEME.background,
+                    justifyContent: "center",
+                    alignItems: "center",
                   }}
                 >
-                  <ImageBackground
-                    source={{ uri: item.shop.logo }}
-                    style={{ width: "100%", height: "100%" }}
-                    resizeMode="cover"
-                  />
+                  <Ionicons name="person" size={24} color={THEME.text} />
                 </View>
-                <Pressable
-                  onPress={() =>
-                    Linking.openURL(`${SITE_URL}/${item.shop.slug}`)
-                  }
+              </TouchableOpacity>
+
+              {/* --- Groupe d’actions flottant --- */}
+              <View
+                style={{
+                  position: "absolute",
+                  right: 20,
+                  bottom: height * 0.4,
+                  alignItems: "center",
+                  gap: 20,
+                  zIndex: 20,
+                }}
+              >
+                {[
+                  {
+                    icon: "bookmark-outline",
+                    second: "bookmark",
+                    action: handleToggleRegisterContent,
+                  },
+                  { icon: "share-social-outline", action: handleShareContent },
+                ].map((btn, i) => {
+                  const isBookmarked =
+                    btn.icon === "bookmark-outline" &&
+                    isContentRegistered(item.product.id);
+
+                  return (
+                    <TouchableOpacity
+                      key={i}
+                      activeOpacity={0.7}
+                      onPress={() => btn.action(item)}
+                      style={{
+                        backgroundColor: isBookmarked
+                          ? "rgba(255,255,255,0.12)" // léger fond clair si actif
+                          : "rgba(0,0,0,0.45)",
+                        borderRadius: 40,
+                        padding: 10,
+                        borderWidth: isBookmarked ? 0.8 : 0,
+                        borderColor: "rgba(255,255,255,0.2)",
+                        justifyContent: "center",
+                        alignItems: "center",
+                      }}
+                    >
+                      <Ionicons
+                        name={
+                          isBookmarked ? (btn.second as any) : (btn.icon as any)
+                        }
+                        size={22}
+                        color={isBookmarked ? "#F5C542" : "#FFFFFF"} // or #E6E6E6 for softer white
+                      />
+                    </TouchableOpacity>
+                  );
+                })}
+
+                {/* --- MORE OPTIONS --- */}
+                <MoreOptionsButton content={item} />
+              </View>
+
+              {/* Absolute music controlleur */}
+              <SoundToggleButton muted={muted} toggleMute={toggleMute} />
+
+              {/* --- Contenu principal --- */}
+              <View
+                style={{
+                  position: "absolute",
+                  bottom: 100,
+                  paddingHorizontal: 20,
+                  width: "100%",
+                }}
+              >
+                {/* Infos Shop */}
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    marginBottom: 12,
+                  }}
                 >
+                  <View
+                    style={{
+                      width: 45,
+                      height: 45,
+                      borderRadius: 22.5, // cercle parfait
+                      overflow: "hidden", // important pour que l'image respecte le cercle
+                      marginRight: 10,
+                    }}
+                  >
+                    <ImageBackground
+                      source={{ uri: item.shop.logo }}
+                      style={{ width: "100%", height: "100%" }}
+                      resizeMode="cover"
+                    />
+                  </View>
+                  <Pressable
+                    onPress={() => {
+                      // toggleMute();
+                      Linking.openURL(`${SITE_URL}/${item.shop.slug}`);
+                    }}
+                  >
+                    <Text
+                      style={{
+                        color: THEME.text,
+                        fontFamily: FONTS.subheading,
+                        fontSize: TEXT_SIZE.medium,
+                      }}
+                    >
+                      {capitalizeText(item.shop.name)}
+                    </Text>
+                  </Pressable>
+                </View>
+                {/* Titre produit */}
+                <Text
+                  style={{
+                    color: THEME.text,
+                    fontFamily: FONTS.subheading,
+                    fontSize: TEXT_SIZE.large,
+                    marginBottom: 6,
+                  }}
+                >
+                  {capitalizeText(item.product.title)}
+                </Text>
+                {/* Description courte */}
+                <Text
+                  numberOfLines={2}
+                  style={{
+                    color: "#aaa",
+                    fontFamily: FONTS.body,
+                    fontSize: TEXT_SIZE.small,
+                    marginBottom: 10,
+                  }}
+                >
+                  {capitalizeText(item.product.description)}
+                </Text>
+                {/* Tags */}
+                <View
+                  style={{
+                    flexDirection: "row",
+                    flexWrap: "wrap",
+                    marginBottom: 18,
+                  }}
+                >
+                  {[
+                    "#" + item.product.category,
+                    "#" + item.product.type,
+                    "#" + item.product.target,
+                    item.product.brand && "#" + item.product.brand,
+                  ]
+                    .filter(Boolean)
+                    .map((tag, i) => (
+                      <Text
+                        key={i}
+                        style={{
+                          color: THEME.accent,
+                          marginRight: 10,
+                          fontFamily: FONTS.body,
+                          fontSize: TEXT_SIZE.small,
+                        }}
+                      >
+                        {tag}
+                      </Text>
+                    ))}
+                </View>
+                {/* Bouton acheter */}
+                <TouchableOpacity
+                  activeOpacity={0.8}
+                  onPress={() => Linking.openURL(item.url)}
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    backgroundColor: THEME.primary,
+                    paddingVertical: 14,
+                    borderRadius: 14,
+                  }}
+                >
+                  <Ionicons
+                    name="cart-outline"
+                    size={20}
+                    color="#fff"
+                    style={{ marginRight: 8 }}
+                  />
                   <Text
                     style={{
-                      color: THEME.text,
+                      color: "#fff",
                       fontFamily: FONTS.subheading,
                       fontSize: TEXT_SIZE.medium,
                     }}
                   >
-                    {capitalizeText(item.shop.name)}
+                    Acheter • {returnFormatedMoney(item.product.price)}
                   </Text>
-                </Pressable>
-              </View>
-              {/* Titre produit */}
-              <Text
-                style={{
-                  color: THEME.text,
-                  fontFamily: FONTS.subheading,
-                  fontSize: TEXT_SIZE.large,
-                  marginBottom: 6,
-                }}
-              >
-                {capitalizeText(item.product.title)}
-              </Text>
-              {/* Description courte */}
-              <Text
-                numberOfLines={2}
-                style={{
-                  color: "#aaa",
-                  fontFamily: FONTS.body,
-                  fontSize: TEXT_SIZE.small,
-                  marginBottom: 10,
-                }}
-              >
-                {capitalizeText(item.product.description)}
-              </Text>
-              {/* Tags */}
-              <View
-                style={{
-                  flexDirection: "row",
-                  flexWrap: "wrap",
-                  marginBottom: 18,
-                }}
-              >
-                {[
-                  "#" + item.product.category,
-                  "#" + item.product.type,
-                  "#" + item.product.target,
-                  item.product.brand && "#" + item.product.brand,
-                ]
-                  .filter(Boolean)
-                  .map((tag, i) => (
-                    <Text
-                      key={i}
-                      style={{
-                        color: THEME.accent,
-                        marginRight: 10,
-                        fontFamily: FONTS.body,
-                        fontSize: TEXT_SIZE.small,
-                      }}
-                    >
-                      {tag}
-                    </Text>
-                  ))}
-              </View>
-              {/* Bouton acheter */}
-              <TouchableOpacity
-                activeOpacity={0.8}
-                onPress={() => Linking.openURL(item.url)}
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  backgroundColor: THEME.primary,
-                  paddingVertical: 14,
-                  borderRadius: 14,
-                }}
-              >
-                <Ionicons
-                  name="cart-outline"
-                  size={20}
-                  color="#fff"
-                  style={{ marginRight: 8 }}
-                />
-                <Text
-                  style={{
-                    color: "#fff",
-                    fontFamily: FONTS.subheading,
-                    fontSize: TEXT_SIZE.medium,
-                  }}
-                >
-                  Acheter • {returnFormatedMoney(item.product.price)}
-                </Text>
-                <Text
-                  style={{
-                    marginLeft: 2.5,
-                    color: "#fff",
-                    fontFamily: FONTS.subheading,
-                    fontSize: TEXT_SIZE.small,
-                  }}
-                >
-                  {returnCurrencySymbol(item.product.currency)}
-                </Text>
-                {item.product.discountPercentage && (
-                  <View
+                  <Text
                     style={{
-                      marginLeft: 10,
-                      backgroundColor: "#ff4d4d",
-                      borderRadius: 8,
-                      paddingHorizontal: 8,
-                      paddingVertical: 2,
+                      marginLeft: 2.5,
+                      color: "#fff",
+                      fontFamily: FONTS.subheading,
+                      fontSize: TEXT_SIZE.small,
                     }}
                   >
-                    <Text
+                    {returnCurrencySymbol(item.product.currency)}
+                  </Text>
+                  {item.product.discountPercentage && (
+                    <View
                       style={{
-                        color: "#fff",
-                        fontSize: TEXT_SIZE.small,
-                        fontFamily: FONTS.body,
+                        marginLeft: 10,
+                        backgroundColor: "#ff4d4d",
+                        borderRadius: 8,
+                        paddingHorizontal: 8,
+                        paddingVertical: 2,
                       }}
                     >
-                      -{item.product.discountPercentage}%
-                    </Text>
-                  </View>
-                )}
-              </TouchableOpacity>
-            </View>
-          </ImageBackground>
+                      <Text
+                        style={{
+                          color: "#fff",
+                          fontSize: TEXT_SIZE.small,
+                          fontFamily: FONTS.body,
+                        }}
+                      >
+                        -{item.product.discountPercentage}%
+                      </Text>
+                    </View>
+                  )}
+                </TouchableOpacity>
+              </View>
+            </ImageBackground>
+          </Pressable>
         )}
       />
     </View>
