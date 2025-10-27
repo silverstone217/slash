@@ -1,7 +1,7 @@
 # Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
 
 # dependencies
-node_modules/
+node_modules
 
 # Expo
 .expo/
@@ -39,6 +39,16 @@ yarn-error.*
 
 app-example
 
+.git
+.gitignore
+metro-cache
+.expo-dev-cache
+.expo-shared
+
 # generated native folders
-/ios
-/android
+ios
+android
+
+# Autres
+*.log
+.DS_Store
