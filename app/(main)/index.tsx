@@ -1,5 +1,5 @@
 import { MoreOptionsButton } from "@/components/MoreOptionsButton";
-import SoundToggleButton from "@/components/SoundToggleButton";
+// import SoundToggleButton from "@/components/SoundToggleButton";
 import { useUserStore } from "@/lib/store";
 import { FONTS, TEXT_SIZE, THEME } from "@/lib/styles";
 import { ContentType } from "@/types";
@@ -10,10 +10,10 @@ import {
   returnFormatedMoney,
 } from "@/utils/functions";
 import { Ionicons } from "@expo/vector-icons";
-import { useAudioPlayer } from "expo-audio";
+// import { useAudioPlayer } from "expo-audio";
 import * as Haptics from "expo-haptics";
 import { LinearGradient } from "expo-linear-gradient";
-import { useNavigation, useRouter } from "expo-router";
+import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -31,15 +31,15 @@ import {
 
 const { height, width } = Dimensions.get("screen");
 
-const playlist = [
-  require("../../assets/sounds/sound1.mp3"),
-  require("../../assets/sounds/sound2.mp3"),
-  require("../../assets/sounds/sound3.mp3"),
-  require("../../assets/sounds/sound4.mp3"),
-  require("../../assets/sounds/sound5.mp3"),
-  require("../../assets/sounds/sound6.mp3"),
-  require("../../assets/sounds/sound7.mp3"),
-];
+// const playlist = [
+//   require("../../assets/sounds/sound1.mp3"),
+//   require("../../assets/sounds/sound2.mp3"),
+//   require("../../assets/sounds/sound3.mp3"),
+//   require("../../assets/sounds/sound4.mp3"),
+//   require("../../assets/sounds/sound5.mp3"),
+//   require("../../assets/sounds/sound6.mp3"),
+//   require("../../assets/sounds/sound7.mp3"),
+// ];
 
 export default function FeedScreen() {
   // const { scrollToId } = useLocalSearchParams();
@@ -48,14 +48,14 @@ export default function FeedScreen() {
   const [loading, setLoading] = useState(true);
   const [initialLoad, setInitialLoad] = useState(true);
 
-  const [lastPlayedId, setLastPlayedId] = useState<string | null>(null);
+  // const [lastPlayedId, setLastPlayedId] = useState<string | null>(null);
 
-  const [currentTrack, setCurrentTrack] = useState(playlist[0]);
-  const player = useAudioPlayer(currentTrack, {
-    keepAudioSessionActive: false,
-  });
-  const [shouldPlay, setShouldPlay] = useState(false);
-  const [muted, setMuted] = useState(false);
+  // const [currentTrack, setCurrentTrack] = useState(playlist[0]);
+  // const player = useAudioPlayer(currentTrack, {
+  //   keepAudioSessionActive: false,
+  // });
+  // const [shouldPlay, setShouldPlay] = useState(false);
+  // const [muted, setMuted] = useState(false);
 
   const {
     preferences,
@@ -66,23 +66,24 @@ export default function FeedScreen() {
 
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [restarted, setRestarted] = useState(false);
 
-  const navigation = useNavigation();
+  // const navigation = useNavigation();
   const flatListRef = useRef<FlatList<ContentType>>(null);
 
   // Lecture aléatoire d’une piste audio
   // Quand currentTrack change, joue la musique
-  useEffect(() => {
-    if (!player) return;
+  // useEffect(() => {
+  //   if (!player) return;
 
-    if (shouldPlay && !muted) {
-      player.seekTo(0);
-      player.play();
-      player.loop = true;
-      setShouldPlay(false);
-    }
-  }, [muted, player, shouldPlay]);
+  //   if (shouldPlay && !muted) {
+  //     player.seekTo(0);
+  //     player.play();
+  //     player.loop = true;
+  //     setShouldPlay(false);
+  //   }
+  // }, [muted, player, shouldPlay]);
 
   // Scroll to item from profile
   // useEffect(() => {
@@ -100,57 +101,57 @@ export default function FeedScreen() {
   // }, [scrollToId, CONTENTS]);
 
   // Mute music when not focus screen
-  useEffect(() => {
-    if (!player) return;
+  // useEffect(() => {
+  //   if (!player) return;
 
-    const unsubscribeBlur = navigation.addListener("blur", () => {
-      // L’écran n’est plus actif → pause
-      if (player) {
-        player.pause();
-      }
-    });
+  //   const unsubscribeBlur = navigation.addListener("blur", () => {
+  //     // L’écran n’est plus actif → pause
+  //     if (player) {
+  //       player.pause();
+  //     }
+  //   });
 
-    const unsubscribeFocus = navigation.addListener("focus", () => {
-      player.seekTo(0);
-      // L’écran redevient actif → relance la musique
-      if (player && !muted) {
-        player.play();
-        player.loop = true;
-      }
-    });
+  //   const unsubscribeFocus = navigation.addListener("focus", () => {
+  //     player.seekTo(0);
+  //     // L’écran redevient actif → relance la musique
+  //     if (player && !muted) {
+  //       player.play();
+  //       player.loop = true;
+  //     }
+  //   });
 
-    // Nettoyage
-    return () => {
-      unsubscribeBlur();
-      unsubscribeFocus();
-    };
-  }, [navigation, player, muted]);
+  //   // Nettoyage
+  //   return () => {
+  //     unsubscribeBlur();
+  //     unsubscribeFocus();
+  //   };
+  // }, [navigation, player, muted]);
 
   // Mute music when not contents
-  useEffect(() => {
-    if (CONTENTS.length === 0 && player) {
-      player.pause();
-    }
-  }, [CONTENTS.length, player]);
+  // useEffect(() => {
+  //   if (CONTENTS.length === 0 && player) {
+  //     player.pause();
+  //   }
+  // }, [CONTENTS.length, player]);
 
   // Choose random song to play
-  const playRandomTrack = () => {
-    const random = playlist[Math.floor(Math.random() * playlist.length)];
-    setCurrentTrack(random);
+  // const playRandomTrack = () => {
+  //   const random = playlist[Math.floor(Math.random() * playlist.length)];
+  //   setCurrentTrack(random);
 
-    setShouldPlay(true);
-  };
+  //   setShouldPlay(true);
+  // };
 
   // Mute toggle
-  const toggleMute = () => {
-    setMuted((prev) => !prev);
-    Haptics.selectionAsync();
-    if (muted) {
-      player.play(); // ou resume
-    } else {
-      player.pause(); // ou stop
-    }
-  };
+  // const toggleMute = () => {
+  //   setMuted((prev) => !prev);
+  //   Haptics.selectionAsync();
+  //   if (muted) {
+  //     player.play(); // ou resume
+  //   } else {
+  //     player.pause(); // ou stop
+  //   }
+  // };
 
   // Enregistrement des items vus
   const onViewableItemsChanged = useRef(
@@ -159,10 +160,10 @@ export default function FeedScreen() {
         const item = viewToken.item as ContentType;
         addViewedProductId(item.product.id);
 
-        if (item.product.id !== lastPlayedId) {
-          setLastPlayedId(item.product.id);
-          playRandomTrack();
-        }
+        // if (item.product.id !== lastPlayedId) {
+        //   setLastPlayedId(item.product.id);
+        //   playRandomTrack();
+        // }
       });
     }
   ).current;
@@ -286,11 +287,11 @@ export default function FeedScreen() {
         snapToAlignment="start"
         decelerationRate={"normal"}
         removeClippedSubviews={true}
-        getItemLayout={(data, index) => ({
-          length: height,
-          offset: height * index,
-          index,
-        })}
+        // getItemLayout={(data, index) => ({
+        //   length: height,
+        //   offset: height * index,
+        //   index,
+        // })}
         onEndReached={async () => {
           if (loading) return;
           setLoading(true);
@@ -376,7 +377,7 @@ export default function FeedScreen() {
           // --- ton rendu existant (inchangé) ---
           <Pressable
             style={{ height, width, justifyContent: "flex-end" }}
-            onPress={toggleMute}
+            // onPress={toggleMute}
           >
             <ImageBackground
               source={{ uri: item.product.images[0] }}
@@ -490,7 +491,7 @@ export default function FeedScreen() {
               </View>
 
               {/* Absolute music controlleur */}
-              <SoundToggleButton muted={muted} toggleMute={toggleMute} />
+              {/* <SoundToggleButton muted={muted} toggleMute={toggleMute} /> */}
 
               {/* --- Contenu principal --- */}
               <View
