@@ -1,44 +1,56 @@
+import { ProfileContentOptions } from "@/components/ProfileContentOptions";
 import { useUserStore } from "@/lib/store";
 import { FONTS, TEXT_SIZE, THEME } from "@/lib/styles";
-import { capitalizeText } from "@/utils/functions";
+import {
+  capitalizeText,
+  returnCurrencySymbol,
+  returnFormatedMoney,
+} from "@/utils/functions";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import React from "react";
+import React, { useState } from "react";
 import {
-  Dimensions,
   FlatList,
-  ImageBackground,
+  Image,
+  Pressable,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-
-const { width } = Dimensions.get("window");
+import { SafeAreaView } from "react-native-safe-area-context";
 
 const ProfileScreen = () => {
-  const insets = useSafeAreaInsets();
   const router = useRouter();
   const { username, contentsRegistered } = useUserStore();
+  const [isVisible, setVisible] = useState(false);
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
-      {/* 🔙 Bouton retour */}
-      <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-        <Ionicons name="chevron-back" size={24} color={THEME.text} />
-      </TouchableOpacity>
-
-      {/* 👤 Profil */}
+    <SafeAreaView style={styles.container}>
+      {/* 🔙 Header */}
       <View style={styles.header}>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => router.back()}
+          activeOpacity={0.7}
+        >
+          <Ionicons name="chevron-back" size={24} color={THEME.text} />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Profil</Text>
+        <View style={{ width: 24 }} />
+      </View>
+      {/* 👤 Avatar + Username */}
+      <View style={styles.profileSection}>
         <View style={styles.avatarWrapper}>
           <LinearGradient
-            colors={["#ff7eb3", "#ff758c", "#ffb199"]}
+            colors={["#ff9a9e", "#fad0c4"]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
             style={styles.gradientCircle}
           />
           <View style={styles.avatarInner}>
-            <Ionicons name="person" size={40} color={THEME.text} />
+            <Ionicons name="person" size={42} color={THEME.text} />
           </View>
         </View>
         <Text style={styles.username}>
@@ -46,45 +58,58 @@ const ProfileScreen = () => {
         </Text>
       </View>
 
-      {/* 🧾 Liste des contenus */}
+      {/* 📦 Liste des produits */}
       <FlatList
         data={contentsRegistered}
-        keyExtractor={(item) => item.product.id}
-        contentContainerStyle={{
-          paddingHorizontal: 12,
-          paddingBottom: insets.bottom + 20,
-          paddingTop: 10,
-        }}
-        showsVerticalScrollIndicator={false}
-        ListHeaderComponent={<View style={{ height: 20 }} />}
+        numColumns={2}
+        columnWrapperStyle={{ justifyContent: "space-between" }}
+        contentContainerStyle={styles.gridContainer}
+        keyExtractor={(item, index) =>
+          item.product.id.toString() + index.toString()
+        }
         renderItem={({ item }) => (
-          <View style={styles.postCard}>
-            <ImageBackground
+          <Pressable
+            style={styles.card}
+            android_ripple={{ color: "rgba(255,255,255,0.05)" }}
+            // onPress={() =>
+            //   router.push({
+            //     pathname: "/(main)",
+            //     params: { scrollToId: item.product.id },
+            //   })
+            // }
+          >
+            <Image
               source={{ uri: item.product.images[0] }}
-              style={styles.postImage}
-              imageStyle={{ borderRadius: 16 }}
+              style={styles.productImage}
               resizeMode="cover"
-            >
-              {item.product.discountPercentage && (
-                <View style={styles.discountBadge}>
-                  <Text style={styles.discountText}>
-                    -{item.product.discountPercentage}%
-                  </Text>
-                </View>
-              )}
-            </ImageBackground>
-            <View style={styles.postInfo}>
-              <Text style={styles.postTitle}>
+            />
+
+            <View style={styles.cardInfo}>
+              <Text style={styles.productTitle} numberOfLines={1}>
                 {capitalizeText(item.product.title)}
               </Text>
-              <Text style={styles.postPrice}>
-                {item.product.price} {item.product.currency}
-              </Text>
+
+              <View style={styles.priceRow}>
+                <Text style={styles.price}>
+                  {returnFormatedMoney(item.product.price)}
+                </Text>
+                <Text style={styles.currency}>
+                  {returnCurrencySymbol(item.product.currency)}
+                </Text>
+              </View>
+
+              <View style={styles.footerRow}>
+                <Text style={styles.shopName} numberOfLines={1}>
+                  {capitalizeText(item.shop.name)}
+                </Text>
+
+                <ProfileContentOptions content={item} />
+              </View>
             </View>
-          </View>
+          </Pressable>
         )}
       />
-    </View>
+    </SafeAreaView>
   );
 };
 
@@ -93,89 +118,112 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: THEME.background,
   },
-  backButton: {
-    position: "absolute",
-    top: 12,
-    left: 12,
-    zIndex: 10,
-    backgroundColor: "rgba(0,0,0,0.3)",
-    padding: 8,
-    borderRadius: 20,
-  },
   header: {
+    flexDirection: "row",
     alignItems: "center",
-    marginTop: 60,
-    marginBottom: 20,
+    justifyContent: "space-between",
+    paddingHorizontal: 20,
+    marginTop: 10,
+  },
+  backButton: {
+    padding: 6,
+    borderRadius: 50,
+  },
+  headerTitle: {
+    fontFamily: FONTS.heading,
+    fontSize: TEXT_SIZE.large,
+    color: THEME.text,
+  },
+  profileSection: {
+    alignItems: "center",
+    marginTop: 30,
+    marginBottom: 15,
   },
   avatarWrapper: {
+    width: 110,
+    height: 110,
+    borderRadius: 55,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  gradientCircle: {
+    ...StyleSheet.absoluteFillObject,
+    borderRadius: 55,
+  },
+  avatarInner: {
     width: 100,
     height: 100,
     borderRadius: 50,
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 12,
-  },
-  gradientCircle: {
-    position: "absolute",
-    width: "100%",
-    height: "100%",
-    borderRadius: 50,
-  },
-  avatarInner: {
-    width: 92,
-    height: 92,
-    borderRadius: 46,
     backgroundColor: THEME.background,
     justifyContent: "center",
     alignItems: "center",
-  },
-  username: {
-    color: THEME.text,
-    fontFamily: FONTS.heading,
-    fontSize: TEXT_SIZE.xlarge,
-  },
-  postCard: {
-    marginBottom: 24,
-    borderRadius: 16,
-    overflow: "hidden",
-    // backgroundColor: THEME.card,
     shadowColor: "#000",
     shadowOpacity: 0.1,
-    shadowRadius: 6,
+    shadowRadius: 5,
+    elevation: 5,
+  },
+  username: {
+    marginTop: 12,
+    fontSize: TEXT_SIZE.large,
+    fontFamily: FONTS.heading,
+    color: THEME.text,
+  },
+  gridContainer: {
+    paddingHorizontal: 16,
+    paddingBottom: 100,
+    paddingTop: 10,
+  },
+  card: {
+    width: "48%",
+    backgroundColor: THEME.border,
+    borderRadius: 16,
+    overflow: "hidden",
+    marginBottom: 16,
     elevation: 3,
   },
-  postImage: {
-    width: width - 24,
-    height: 200,
-    justifyContent: "flex-end",
+  productImage: {
+    width: "100%",
+    height: 160,
   },
-  discountBadge: {
-    backgroundColor: "#ff4d4d",
-    borderRadius: 8,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    position: "absolute",
-    top: 10,
-    left: 10,
+  cardInfo: {
+    padding: 10,
   },
-  discountText: {
-    color: "#fff",
-    fontFamily: FONTS.body,
-    fontSize: TEXT_SIZE.small,
-  },
-  postInfo: {
-    padding: 12,
-  },
-  postTitle: {
+  productTitle: {
     color: THEME.text,
     fontFamily: FONTS.subheading,
-    fontSize: TEXT_SIZE.medium,
-    marginBottom: 4,
+    fontSize: TEXT_SIZE.small,
+    marginBottom: 3,
   },
-  postPrice: {
-    color: THEME.accent,
-    fontFamily: FONTS.medium,
-    fontSize: TEXT_SIZE.medium,
+  priceRow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  price: {
+    color: THEME.primary,
+    fontFamily: FONTS.subheading,
+    fontSize: TEXT_SIZE.small,
+  },
+  currency: {
+    marginLeft: 2,
+    color: THEME.primary,
+    fontSize: TEXT_SIZE.small - 3,
+    fontFamily: FONTS.subheading,
+  },
+  footerRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginTop: 6,
+  },
+  shopName: {
+    color: THEME.secondary,
+    fontSize: TEXT_SIZE.small - 3,
+    fontFamily: FONTS.body,
+  },
+  iconButton: {
+    backgroundColor: "rgba(0,0,0,0.35)",
+    borderRadius: 50,
+    padding: 5,
   },
 });
 

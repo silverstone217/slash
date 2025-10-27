@@ -42,6 +42,8 @@ const playlist = [
 ];
 
 export default function FeedScreen() {
+  // const { scrollToId } = useLocalSearchParams();
+
   const [CONTENTS, setCONTENTS] = useState<ContentType[] | []>([]);
   const [loading, setLoading] = useState(true);
   const [initialLoad, setInitialLoad] = useState(true);
@@ -67,6 +69,7 @@ export default function FeedScreen() {
   const [restarted, setRestarted] = useState(false);
 
   const navigation = useNavigation();
+  const flatListRef = useRef<FlatList<ContentType>>(null);
 
   // Lecture aléatoire d’une piste audio
   // Quand currentTrack change, joue la musique
@@ -81,6 +84,22 @@ export default function FeedScreen() {
     }
   }, [muted, player, shouldPlay]);
 
+  // Scroll to item from profile
+  // useEffect(() => {
+  //   if (scrollToId && CONTENTS.length > 0) {
+  //     const index = CONTENTS.findIndex(
+  //       (item) => item.product.id.toString() === scrollToId
+  //     );
+  //     if (index !== -1) {
+  //       // Petite attente pour être sûr que la FlatList est rendue
+  //       setTimeout(() => {
+  //         flatListRef.current?.scrollToIndex({ index, animated: true });
+  //       }, 300);
+  //     }
+  //   }
+  // }, [scrollToId, CONTENTS]);
+
+  // Mute music when not focus screen
   useEffect(() => {
     if (!player) return;
 
@@ -107,9 +126,18 @@ export default function FeedScreen() {
     };
   }, [navigation, player, muted]);
 
+  // Mute music when not contents
+  useEffect(() => {
+    if (CONTENTS.length === 0 && player) {
+      player.pause();
+    }
+  }, [CONTENTS.length, player]);
+
+  // Choose random song to play
   const playRandomTrack = () => {
     const random = playlist[Math.floor(Math.random() * playlist.length)];
     setCurrentTrack(random);
+
     setShouldPlay(true);
   };
 
@@ -151,10 +179,6 @@ export default function FeedScreen() {
   // Récupération des données
   const getResponse = useCallback(
     async (reset = false) => {
-      if (reset) {
-        setInitialLoad(true); // ✅ active le loader uniquement au redémarrage
-      }
-
       try {
         const currentPage = reset ? 1 : page;
         const res = await fetch(
@@ -173,28 +197,28 @@ export default function FeedScreen() {
           viewedProductIds.includes(item.product.id)
         );
 
-        const sorted = [...notViewed, ...alreadyViewed].filter(
-          (item) => !CONTENTS.some((c) => c.product.id === item.product.id)
-        );
+        const sorted = [...notViewed, ...alreadyViewed];
 
         if (reset) {
-          setCONTENTS(sorted);
+          // 🌀 au lieu de remplacer, on concatène (loop effect)
+          setCONTENTS((prev) => [...prev, ...sorted]);
           setPage(2);
-          setRestarted(true);
+          setRestarted(false);
         } else {
-          setCONTENTS((prev) => [...prev, ...sorted].slice(-100));
+          setCONTENTS((prev) => [...prev, ...sorted]);
           setPage((prev) => prev + 1);
         }
 
-        setHasMore(data.hasMore);
+        // tant qu’on reçoit des produits, on garde hasMore vrai
+        setHasMore(allContents.length > 0);
       } catch (error) {
         console.error("Error fetching data:", error);
       } finally {
         setLoading(false);
-        setInitialLoad(false); // ✅ désactive le loader après le premier affichage
+        setInitialLoad(false);
       }
     },
-    [page, query, CONTENTS]
+    [page, query]
   );
 
   // Lancement de la récupération au montage
@@ -246,6 +270,7 @@ export default function FeedScreen() {
   return (
     <View style={{ flex: 1, backgroundColor: THEME.background }}>
       <FlatList
+        ref={flatListRef}
         data={CONTENTS}
         keyExtractor={(item, index) => `${item.product.id}-${index}`}
         pagingEnabled
@@ -266,12 +291,20 @@ export default function FeedScreen() {
           offset: height * index,
           index,
         })}
-        onEndReached={() => {
+        onEndReached={async () => {
+          if (loading) return;
+          setLoading(true);
+
           if (hasMore) {
-            getResponse();
-          } else if (!restarted) {
-            getResponse(true); // 🔁 redémarre le feed
+            await getResponse();
+          } else {
+            // 🚀 Redémarre le flux sans vider
+            flatListRef.current?.scrollToOffset({ offset: 0, animated: false });
+            await getResponse(true);
+            setHasMore(true);
           }
+
+          setLoading(false);
         }}
         // ------- AFFICHAGE SI LISTE VIDE ------
         ListEmptyComponent={
@@ -296,7 +329,7 @@ export default function FeedScreen() {
                 Chargement du contenu...
               </Text>
             </View>
-          ) : (
+          ) : page === 1 ? (
             <View
               style={{
                 flex: 1,
@@ -336,7 +369,7 @@ export default function FeedScreen() {
                 nouveaux articles.
               </Text>
             </View>
-          )
+          ) : null
         }
         // -------- AFFICHAGE DE CHAQUE ITEM ----
         renderItem={({ item }) => (

@@ -1,4 +1,4 @@
-import { ANIMALS, ADJECTIVES } from "@/utils/data";
+import { ADJECTIVES, ANIMALS } from "@/utils/data";
 
 export function generateUsername(): string {
   // Sélection aléatoire d'un animal
@@ -13,7 +13,9 @@ export function generateUsername(): string {
   // Format avec deux chiffres (01, 02, ..., 99)
   const formattedNumber = number.toString().padStart(2, "0");
 
-  return `${animal}_${adjective}_${formattedNumber}`;
+  return `${capitalizeText(animal)}${capitalizeText(
+    adjective
+  )}${formattedNumber}`;
 }
 
 // capitaliser la premiere lettre d'un text
