@@ -1,7 +1,6 @@
 import { MoreOptionsButton } from "@/components/MoreOptionsButton";
-// import SoundToggleButton from "@/components/SoundToggleButton";
 import { useUserStore } from "@/lib/store";
-import { FONTS, TEXT_SIZE, THEME } from "@/lib/styles";
+import { FONTS, THEME } from "@/lib/styles";
 import { ContentType } from "@/types";
 import { BACKEND_URL, SITE_URL } from "@/utils/data";
 import {
@@ -10,19 +9,18 @@ import {
   returnFormatedMoney,
 } from "@/utils/functions";
 import { Ionicons } from "@expo/vector-icons";
-// import { useAudioPlayer } from "expo-audio";
 import * as Haptics from "expo-haptics";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { memo, useCallback, useEffect, useRef, useState } from "react";
 import {
-  ActivityIndicator,
   Dimensions,
   FlatList,
-  ImageBackground,
+  Image,
   Linking,
   Pressable,
   Share,
+  StyleSheet,
   Text,
   TouchableOpacity,
   View,
@@ -31,634 +29,468 @@ import {
 
 const { height, width } = Dimensions.get("screen");
 
-// const playlist = [
-//   require("../../assets/sounds/sound1.mp3"),
-//   require("../../assets/sounds/sound2.mp3"),
-//   require("../../assets/sounds/sound3.mp3"),
-//   require("../../assets/sounds/sound4.mp3"),
-//   require("../../assets/sounds/sound5.mp3"),
-//   require("../../assets/sounds/sound6.mp3"),
-//   require("../../assets/sounds/sound7.mp3"),
-// ];
-
-export default function FeedScreen() {
-  // const { scrollToId } = useLocalSearchParams();
-
-  const [CONTENTS, setCONTENTS] = useState<ContentType[] | []>([]);
-  const [loading, setLoading] = useState(true);
-  const [initialLoad, setInitialLoad] = useState(true);
-
-  // const [lastPlayedId, setLastPlayedId] = useState<string | null>(null);
-
-  // const [currentTrack, setCurrentTrack] = useState(playlist[0]);
-  // const player = useAudioPlayer(currentTrack, {
-  //   keepAudioSessionActive: false,
-  // });
-  // const [shouldPlay, setShouldPlay] = useState(false);
-  // const [muted, setMuted] = useState(false);
-
-  const {
-    preferences,
-    addViewedProductId,
-    toggleRegisterContent,
-    isContentRegistered,
-  } = useUserStore();
-
-  const [page, setPage] = useState(1);
-  const [hasMore, setHasMore] = useState(true);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [restarted, setRestarted] = useState(false);
-
-  // const navigation = useNavigation();
-  const flatListRef = useRef<FlatList<ContentType>>(null);
-
-  // Lecture aléatoire d’une piste audio
-  // Quand currentTrack change, joue la musique
-  // useEffect(() => {
-  //   if (!player) return;
-
-  //   if (shouldPlay && !muted) {
-  //     player.seekTo(0);
-  //     player.play();
-  //     player.loop = true;
-  //     setShouldPlay(false);
-  //   }
-  // }, [muted, player, shouldPlay]);
-
-  // Scroll to item from profile
-  // useEffect(() => {
-  //   if (scrollToId && CONTENTS.length > 0) {
-  //     const index = CONTENTS.findIndex(
-  //       (item) => item.product.id.toString() === scrollToId
-  //     );
-  //     if (index !== -1) {
-  //       // Petite attente pour être sûr que la FlatList est rendue
-  //       setTimeout(() => {
-  //         flatListRef.current?.scrollToIndex({ index, animated: true });
-  //       }, 300);
-  //     }
-  //   }
-  // }, [scrollToId, CONTENTS]);
-
-  // Mute music when not focus screen
-  // useEffect(() => {
-  //   if (!player) return;
-
-  //   const unsubscribeBlur = navigation.addListener("blur", () => {
-  //     // L’écran n’est plus actif → pause
-  //     if (player) {
-  //       player.pause();
-  //     }
-  //   });
-
-  //   const unsubscribeFocus = navigation.addListener("focus", () => {
-  //     player.seekTo(0);
-  //     // L’écran redevient actif → relance la musique
-  //     if (player && !muted) {
-  //       player.play();
-  //       player.loop = true;
-  //     }
-  //   });
-
-  //   // Nettoyage
-  //   return () => {
-  //     unsubscribeBlur();
-  //     unsubscribeFocus();
-  //   };
-  // }, [navigation, player, muted]);
-
-  // Mute music when not contents
-  // useEffect(() => {
-  //   if (CONTENTS.length === 0 && player) {
-  //     player.pause();
-  //   }
-  // }, [CONTENTS.length, player]);
-
-  // Choose random song to play
-  // const playRandomTrack = () => {
-  //   const random = playlist[Math.floor(Math.random() * playlist.length)];
-  //   setCurrentTrack(random);
-
-  //   setShouldPlay(true);
-  // };
-
-  // Mute toggle
-  // const toggleMute = () => {
-  //   setMuted((prev) => !prev);
-  //   Haptics.selectionAsync();
-  //   if (muted) {
-  //     player.play(); // ou resume
-  //   } else {
-  //     player.pause(); // ou stop
-  //   }
-  // };
-
-  // Enregistrement des items vus
-  const onViewableItemsChanged = useRef(
-    ({ viewableItems }: { viewableItems: ViewToken[] }) => {
-      viewableItems.forEach((viewToken) => {
-        const item = viewToken.item as ContentType;
-        addViewedProductId(item.product.id);
-
-        // if (item.product.id !== lastPlayedId) {
-        //   setLastPlayedId(item.product.id);
-        //   playRandomTrack();
-        // }
-      });
-    }
-  ).current;
-
-  // Préparation de la query
-  const query = new URLSearchParams({
-    categories: preferences.categories.join(","), // "Électronique,Mode"
-    gender: preferences.gender,
-    // showAds: String(preferences.showAds),
-  }).toString();
-
+// --- COMPOSANT ITEM (Mémoïsé et Nommé pour ESLint) ---
+const FeedItem = memo(function FeedItem({
+  item,
+  isContentRegistered,
+  onToggleRegister,
+  onShare,
+}: {
+  item: ContentType;
+  isContentRegistered: (id: string) => boolean;
+  onToggleRegister: (item: ContentType) => void;
+  onShare: (item: ContentType) => void;
+}) {
   const router = useRouter();
+  const isBookmarked = isContentRegistered(item.product.id);
+  const [lastTap, setLastTap] = useState(0);
 
-  // Récupération des données
-  const getResponse = useCallback(
-    async (reset = false) => {
-      try {
-        const currentPage = reset ? 1 : page;
-        const res = await fetch(
-          `${BACKEND_URL}/products/get?${query}&page=${currentPage}`
-        );
-        const data: { CONTENTS: ContentType[]; hasMore: boolean } =
-          await res.json();
-
-        const allContents = data.CONTENTS || [];
-        const { viewedProductIds } = useUserStore.getState();
-
-        const notViewed = allContents.filter(
-          (item) => !viewedProductIds.includes(item.product.id)
-        );
-        const alreadyViewed = allContents.filter((item) =>
-          viewedProductIds.includes(item.product.id)
-        );
-
-        const sorted = [...notViewed, ...alreadyViewed];
-
-        if (reset) {
-          // 🌀 au lieu de remplacer, on concatène (loop effect)
-          setCONTENTS((prev) => [...prev, ...sorted]);
-          setPage(2);
-          setRestarted(false);
-        } else {
-          setCONTENTS((prev) => [...prev, ...sorted]);
-          setPage((prev) => prev + 1);
-        }
-
-        // tant qu’on reçoit des produits, on garde hasMore vrai
-        setHasMore(allContents.length > 0);
-      } catch (error) {
-        console.error("Error fetching data:", error);
-      } finally {
-        setLoading(false);
-        setInitialLoad(false);
-      }
-    },
-    [page, query]
-  );
-
-  // Lancement de la récupération au montage
-  useEffect(() => {
-    getResponse();
-  }, [getResponse, query]);
-
-  // ---ACTIONS---
-  // 1. register content
-  const handleToggleRegisterContent = (content: ContentType) => {
-    Haptics.selectionAsync();
-    toggleRegisterContent(content);
-  };
-
-  // 2. share content
-  const handleShareContent = async (content: ContentType) => {
-    try {
-      // petit retour haptique comme tu fais déjà
-      await Haptics.selectionAsync();
-
-      // 🔗 lien du contenu (tu l’as déjà dans content.url)
-      const shareUrl = content?.url ?? "https://www.otekis.com/";
-
-      // 📝 message qui sera partagé
-      const message = `Découvre ce produit sur Otekis 💫\n\n${content.product.title}\n${shareUrl}`;
-
-      // 📲 ouverture du menu natif de partage
-      const result = await Share.share({
-        message,
-        url: shareUrl, // utile surtout pour iOS
-        title: content.product.title,
-      });
-
-      // 📋 Optionnel : gestion du résultat (utile si tu veux analytics)
-      if (result.action === Share.sharedAction) {
-        if (result.activityType) {
-          console.log("Partagé via :", result.activityType);
-        } else {
-          console.log("Partage réussi !");
-        }
-      } else if (result.action === Share.dismissedAction) {
-        console.log("Partage annulé.");
-      }
-    } catch (error) {
-      console.error("Erreur lors du partage :", error);
+  // Détection du Double Tap pour Liker
+  const handleDoubleTap = () => {
+    const now = Date.now();
+    const DOUBLE_PRESS_DELAY = 300;
+    if (lastTap && now - lastTap < DOUBLE_PRESS_DELAY) {
+      onToggleRegister(item);
+    } else {
+      setLastTap(now);
     }
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: THEME.background }}>
-      <FlatList
-        ref={flatListRef}
-        data={CONTENTS}
-        keyExtractor={(item, index) => `${item.product.id}-${index}`}
-        pagingEnabled
-        onEndReachedThreshold={0.3}
-        windowSize={3}
-        onViewableItemsChanged={onViewableItemsChanged}
-        viewabilityConfig={{ itemVisiblePercentThreshold: 80 }}
-        showsHorizontalScrollIndicator={false}
-        showsVerticalScrollIndicator={false}
-        initialNumToRender={1}
-        scrollEventThrottle={16}
-        pinchGestureEnabled={true}
-        snapToAlignment="start"
-        decelerationRate={"normal"}
-        removeClippedSubviews={true}
-        // getItemLayout={(data, index) => ({
-        //   length: height,
-        //   offset: height * index,
-        //   index,
-        // })}
-        onEndReached={async () => {
-          if (loading) return;
-          setLoading(true);
+    <View style={styles.itemContainer}>
+      {/* Zone de clic pour le Double Tap sur toute l'image */}
+      <Pressable onPress={handleDoubleTap} style={StyleSheet.absoluteFill}>
+        <Image
+          source={{ uri: item.product.images[0] }}
+          style={StyleSheet.absoluteFill}
+          resizeMode="cover"
+        />
+      </Pressable>
 
-          if (hasMore) {
-            await getResponse();
-          } else {
-            // 🚀 Redémarre le flux sans vider
-            flatListRef.current?.scrollToOffset({ offset: 0, animated: false });
-            await getResponse(true);
-            setHasMore(true);
-          }
+      {/* Overlays Dégradés pour la lisibilité */}
+      <LinearGradient
+        colors={[
+          "rgba(0,0,0,0.6)",
+          "transparent",
+          "transparent",
+          "rgba(0,0,0,0.95)",
+        ]}
+        style={StyleSheet.absoluteFill}
+        pointerEvents="none"
+      />
 
-          setLoading(false);
-        }}
-        // ------- AFFICHAGE SI LISTE VIDE ------
-        ListEmptyComponent={
-          initialLoad || loading ? (
-            <View
-              style={{
-                flex: 1,
-                height,
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <ActivityIndicator size="large" color={THEME.primary} />
-              <Text
-                style={{
-                  color: THEME.text,
-                  marginTop: 10,
-                  fontFamily: FONTS.subheading,
-                  fontSize: TEXT_SIZE.medium,
-                }}
-              >
-                Chargement du contenu...
-              </Text>
-            </View>
-          ) : page === 1 ? (
-            <View
-              style={{
-                flex: 1,
-                height,
-                alignItems: "center",
-                justifyContent: "center",
-                paddingHorizontal: 20,
-              }}
-            >
-              <Ionicons
-                name="cube-outline"
-                size={80}
-                color="rgba(255,255,255,0.3)"
-                style={{ marginBottom: 20 }}
-              />
-              <Text
-                style={{
-                  color: THEME.text,
-                  fontFamily: FONTS.subheading,
-                  fontSize: TEXT_SIZE.large,
-                  marginBottom: 8,
-                  textAlign: "center",
-                }}
-              >
-                Aucun produit disponible
-              </Text>
-              <Text
-                style={{
-                  color: "#aaa",
-                  fontFamily: FONTS.body,
-                  fontSize: TEXT_SIZE.small,
-                  textAlign: "center",
-                  maxWidth: "80%",
-                }}
-              >
-                Reviens plus tard ou ajuste tes préférences pour découvrir de
-                nouveaux articles.
-              </Text>
-            </View>
-          ) : null
-        }
-        // -------- AFFICHAGE DE CHAQUE ITEM ----
-        renderItem={({ item }) => (
-          // --- ton rendu existant (inchangé) ---
-          <Pressable
-            style={{ height, width, justifyContent: "flex-end" }}
-            // onPress={toggleMute}
+      {/* --- Header : Shop Info --- */}
+      <View style={styles.headerOverlay}>
+        <TouchableOpacity
+          onPress={() => router.navigate(`${SITE_URL}/${item.shop.slug}`)}
+          style={styles.profileContainer}
+          activeOpacity={0.8}
+        >
+          <LinearGradient
+            colors={[THEME.primary, THEME.accent]}
+            style={styles.profileBorder}
           >
-            <ImageBackground
-              source={{ uri: item.product.images[0] }}
-              style={{ height, width, justifyContent: "flex-end" }}
-              resizeMode="contain"
-            >
-              {/* Dégradé sombre */}
-              <LinearGradient
-                colors={["transparent", "rgba(0,0,0,0.9)"]}
-                style={{
-                  position: "absolute",
-                  bottom: 0,
-                  height: "60%",
-                  width: "100%",
-                }}
-              />
-              {/* --- Profil --- */}
-              <TouchableOpacity
-                onPress={() => {
-                  router.push("/profile");
-                  // toggleMute();
-                }}
-                activeOpacity={0.8}
-                style={{
-                  position: "absolute",
-                  top: 60,
-                  left: 20,
-                  width: 55,
-                  height: 55,
-                  borderRadius: 27.5,
-                  justifyContent: "center",
-                  alignItems: "center",
-                }}
-              >
-                <LinearGradient
-                  colors={["#ff7eb3", "#ff758c", "#ffb199"]}
-                  style={{
-                    position: "absolute",
-                    width: "100%",
-                    height: "100%",
-                    borderRadius: 27.5,
-                  }}
-                />
-                <View
-                  style={{
-                    width: 48,
-                    height: 48,
-                    borderRadius: 24,
-                    backgroundColor: THEME.background,
-                    justifyContent: "center",
-                    alignItems: "center",
-                  }}
-                >
-                  <Ionicons name="person" size={24} color={THEME.text} />
-                </View>
-              </TouchableOpacity>
+            <Image
+              source={{ uri: item.shop.logo }}
+              style={styles.shopLogoMini}
+            />
+          </LinearGradient>
+          <View>
+            <Text style={styles.shopName}>
+              {capitalizeText(item.shop.name)}
+            </Text>
+            <Text style={styles.followText}>Voir la boutique</Text>
+          </View>
+        </TouchableOpacity>
+      </View>
 
-              {/* --- Groupe d’actions flottant --- */}
-              <View
-                style={{
-                  position: "absolute",
-                  right: 20,
-                  bottom: height * 0.4,
-                  alignItems: "center",
-                  gap: 20,
-                  zIndex: 20,
-                }}
-              >
-                {[
-                  {
-                    icon: "bookmark-outline",
-                    second: "bookmark",
-                    action: handleToggleRegisterContent,
-                  },
-                  { icon: "share-social-outline", action: handleShareContent },
-                ].map((btn, i) => {
-                  const isBookmarked =
-                    btn.icon === "bookmark-outline" &&
-                    isContentRegistered(item.product.id);
+      {/* Profil and Bookmark */}
+      {/* Profil and Bookmark Button */}
+      <TouchableOpacity
+        onPress={() => router.push("/(main)/profile")}
+        activeOpacity={0.8}
+        style={{
+          position: "absolute",
+          right: 20,
+          top: 60,
+          zIndex: 30, // Pour être sûr qu'il soit au-dessus des overlays
+        }}
+      >
+        <LinearGradient
+          colors={["rgba(255,255,255,0.2)", "rgba(255,255,255,0.05)"]}
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            paddingVertical: 8,
+            paddingHorizontal: 15,
+            borderRadius: 20,
+            borderWidth: 1,
+            borderColor: "rgba(255,255,255,0.3)",
+          }}
+        >
+          <Ionicons
+            name="person-circle-outline"
+            size={20}
+            color="#FFF"
+            style={{ marginRight: 8 }}
+          />
+          <Text
+            style={{
+              color: "#FFF",
+              fontFamily: FONTS.subheading,
+              fontSize: 12,
+              fontWeight: "600",
+            }}
+          >
+            Profil
+          </Text>
+        </LinearGradient>
+      </TouchableOpacity>
 
-                  return (
-                    <TouchableOpacity
-                      key={i}
-                      activeOpacity={0.7}
-                      onPress={() => btn.action(item)}
-                      style={{
-                        backgroundColor: isBookmarked
-                          ? "rgba(255,255,255,0.12)" // léger fond clair si actif
-                          : "rgba(0,0,0,0.45)",
-                        borderRadius: 40,
-                        padding: 10,
-                        borderWidth: isBookmarked ? 0.8 : 0,
-                        borderColor: "rgba(255,255,255,0.2)",
-                        justifyContent: "center",
-                        alignItems: "center",
-                      }}
-                    >
-                      <Ionicons
-                        name={
-                          isBookmarked ? (btn.second as any) : (btn.icon as any)
-                        }
-                        size={22}
-                        color={isBookmarked ? "#F5C542" : "#FFFFFF"} // or #E6E6E6 for softer white
-                      />
-                    </TouchableOpacity>
-                  );
-                })}
+      {/* --- Actions Latérales (TikTok Style) --- */}
+      <View style={styles.rightActions}>
+        <ActionButton
+          icon={isBookmarked ? "bookmark" : "bookmark-outline"}
+          color={isBookmarked ? THEME.primary : "#FFF"}
+          onPress={() => onToggleRegister(item)}
+        />
+        <ActionButton
+          icon="share-social-outline"
+          onShare={() => onShare(item)}
+          isShare
+        />
+        <MoreOptionsButton content={item} />
+      </View>
 
-                {/* --- MORE OPTIONS --- */}
-                <MoreOptionsButton content={item} />
-              </View>
+      {/* --- Infos Produit & Bouton d'achat --- */}
+      <View style={styles.bottomContent}>
+        <Text style={styles.productTitle}>
+          {capitalizeText(item.product.title)}
+        </Text>
+        <Text numberOfLines={2} style={styles.productDescription}>
+          {item.product.description}
+        </Text>
 
-              {/* Absolute music controlleur */}
-              {/* <SoundToggleButton muted={muted} toggleMute={toggleMute} /> */}
+        <View style={styles.tagContainer}>
+          <Text style={styles.tag}>
+            #{item.product.category.replace(/\s/g, "")}
+          </Text>
+          <Text style={styles.tag}>
+            #{item.product.type.replace(/\s/g, "")}
+          </Text>
+        </View>
 
-              {/* --- Contenu principal --- */}
-              <View
-                style={{
-                  position: "absolute",
-                  bottom: 100,
-                  paddingHorizontal: 20,
-                  width: "100%",
-                }}
-              >
-                {/* Infos Shop */}
-                <View
-                  style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-                    marginBottom: 12,
-                  }}
-                >
-                  <View
-                    style={{
-                      width: 45,
-                      height: 45,
-                      borderRadius: 22.5, // cercle parfait
-                      overflow: "hidden", // important pour que l'image respecte le cercle
-                      marginRight: 10,
-                    }}
-                  >
-                    <ImageBackground
-                      source={{ uri: item.shop.logo }}
-                      style={{ width: "100%", height: "100%" }}
-                      resizeMode="cover"
-                    />
-                  </View>
-                  <Pressable
-                    onPress={() => {
-                      // toggleMute();
-                      Linking.openURL(`${SITE_URL}/${item.shop.slug}`);
-                    }}
-                  >
-                    <Text
-                      style={{
-                        color: THEME.text,
-                        fontFamily: FONTS.subheading,
-                        fontSize: TEXT_SIZE.medium,
-                      }}
-                    >
-                      {capitalizeText(item.shop.name)}
-                    </Text>
-                  </Pressable>
-                </View>
-                {/* Titre produit */}
-                <Text
-                  style={{
-                    color: THEME.text,
-                    fontFamily: FONTS.subheading,
-                    fontSize: TEXT_SIZE.large,
-                    marginBottom: 6,
-                  }}
-                >
-                  {capitalizeText(item.product.title)}
-                </Text>
-                {/* Description courte */}
-                <Text
-                  numberOfLines={2}
-                  style={{
-                    color: "#aaa",
-                    fontFamily: FONTS.body,
-                    fontSize: TEXT_SIZE.small,
-                    marginBottom: 10,
-                  }}
-                >
-                  {capitalizeText(item.product.description)}
-                </Text>
-                {/* Tags */}
-                <View
-                  style={{
-                    flexDirection: "row",
-                    flexWrap: "wrap",
-                    marginBottom: 18,
-                  }}
-                >
-                  {[
-                    "#" + item.product.category,
-                    "#" + item.product.type,
-                    "#" + item.product.target,
-                    item.product.brand && "#" + item.product.brand,
-                  ]
-                    .filter(Boolean)
-                    .map((tag, i) => (
-                      <Text
-                        key={i}
-                        style={{
-                          color: THEME.accent,
-                          marginRight: 10,
-                          fontFamily: FONTS.body,
-                          fontSize: TEXT_SIZE.small,
-                        }}
-                      >
-                        {tag}
-                      </Text>
-                    ))}
-                </View>
-                {/* Bouton acheter */}
-                <TouchableOpacity
-                  activeOpacity={0.8}
-                  onPress={() => Linking.openURL(item.url)}
-                  style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    backgroundColor: THEME.primary,
-                    paddingVertical: 14,
-                    borderRadius: 14,
-                  }}
-                >
-                  <Ionicons
-                    name="cart-outline"
-                    size={20}
-                    color="#fff"
-                    style={{ marginRight: 8 }}
-                  />
-                  <Text
-                    style={{
-                      color: "#fff",
-                      fontFamily: FONTS.subheading,
-                      fontSize: TEXT_SIZE.medium,
-                    }}
-                  >
-                    Acheter • {returnFormatedMoney(item.product.price)}
-                  </Text>
-                  <Text
-                    style={{
-                      marginLeft: 2.5,
-                      color: "#fff",
-                      fontFamily: FONTS.subheading,
-                      fontSize: TEXT_SIZE.small,
-                    }}
-                  >
-                    {returnCurrencySymbol(item.product.currency)}
-                  </Text>
-                  {item.product.discountPercentage && (
-                    <View
-                      style={{
-                        marginLeft: 10,
-                        backgroundColor: "#ff4d4d",
-                        borderRadius: 8,
-                        paddingHorizontal: 8,
-                        paddingVertical: 2,
-                      }}
-                    >
-                      <Text
-                        style={{
-                          color: "#fff",
-                          fontSize: TEXT_SIZE.small,
-                          fontFamily: FONTS.body,
-                        }}
-                      >
-                        -{item.product.discountPercentage}%
-                      </Text>
-                    </View>
-                  )}
-                </TouchableOpacity>
-              </View>
-            </ImageBackground>
-          </Pressable>
+        <TouchableOpacity
+          activeOpacity={0.9}
+          onPress={() => Linking.openURL(item.url)}
+          style={styles.buyButton}
+        >
+          <View style={styles.buyButtonTextContainer}>
+            <Ionicons name="cart" size={22} color="#000" />
+            <Text style={styles.buyButtonText}>
+              Acheter • {returnFormatedMoney(item.product.price)}{" "}
+              {returnCurrencySymbol(item.product.currency)}
+            </Text>
+          </View>
+          {item.product.discountPercentage && (
+            <View style={styles.discountBadge}>
+              <Text style={styles.discountText}>
+                -{item.product.discountPercentage}%
+              </Text>
+            </View>
+          )}
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+});
+FeedItem.displayName = "FeedItem";
+
+// --- PETIT COMPOSANT BOUTON ACTION ---
+const ActionButton = ({
+  icon,
+  onPress,
+  onShare,
+  color = "#FFF",
+  isShare = false,
+}: any) => (
+  <TouchableOpacity
+    onPress={isShare ? onShare : onPress}
+    style={styles.iconBtn}
+    activeOpacity={0.7}
+  >
+    <Ionicons name={icon} size={26} color={color} />
+  </TouchableOpacity>
+);
+
+// --- ECRAN PRINCIPAL ---
+export default function FeedScreen() {
+  const [CONTENTS, setCONTENTS] = useState<ContentType[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+
+  const {
+    preferences,
+    addViewedProductId,
+    isContentRegistered,
+    toggleRegisterContent,
+  } = useUserStore();
+
+  const query = new URLSearchParams({
+    categories: preferences.categories.join(","),
+    gender: preferences.gender,
+  }).toString();
+
+  // --- CONFIG DE VISIBILITÉ FIXE ---
+  const viewabilityConfig = useRef({
+    itemVisiblePercentThreshold: 80, // L'item doit être quasi entier
+    minimumViewTime: 200, // Doit rester 200ms pour être compté comme "vu"
+  }).current;
+
+  // --- DÉTECTION ROBUSTE ---
+  const onViewableItemsChanged = useRef(
+    ({ viewableItems }: { viewableItems: ViewToken[] }) => {
+      const fullyVisible = viewableItems.find((v) => v.isViewable && v.item);
+
+      if (!fullyVisible) return;
+
+      const item = fullyVisible.item as ContentType;
+      addViewedProductId(item.product.id);
+    }
+  ).current;
+
+  const getResponse = useCallback(
+    async (reset = false) => {
+      if (loading) return;
+      setLoading(true);
+
+      try {
+        const pageToFetch = reset ? 1 : page;
+        const res = await fetch(
+          `${BACKEND_URL}/products/get?${query}&page=${pageToFetch}`
+        );
+        const data = await res.json();
+        const newBatch: ContentType[] = data.CONTENTS || [];
+
+        // ON RÉCUPÈRE LES IDS DEPUIS LE STORE À CET INSTANT PRÉCIS
+        const viewedIds = useUserStore.getState().viewedProductIds;
+
+        console.log({ viewedProductIds: viewedIds.length });
+
+        // SÉPARATION
+        const notViewed = newBatch.filter(
+          (item) => !viewedIds.includes(item.product.id)
+        );
+        const alreadyViewed = newBatch.filter((item) =>
+          viewedIds.includes(item.product.id)
+        );
+
+        // MÉLANGE DES NOUVEAUX (Pour éviter la répétition monotone)
+        const shuffledNotViewed = notViewed.sort(() => Math.random() - 0.5);
+        const finalBatch = [...shuffledNotViewed, ...alreadyViewed];
+
+        if (reset) {
+          setCONTENTS(finalBatch);
+          setPage(2);
+        } else {
+          setCONTENTS((prev) => [...prev, ...finalBatch]);
+          setPage((prev) => prev + 1);
+        }
+        setHasMore(newBatch.length > 0);
+      } catch (error) {
+        console.error("Fetch error:", error);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [page, query, loading]
+  );
+
+  // --- EFFET DE CHARGEMENT INITIAL ---
+  useEffect(() => {
+    // Petit hack : on attend 100ms que Zustand charge le cache avant le premier fetch
+    const timeout = setTimeout(() => {
+      getResponse(true);
+    }, 200);
+    return () => clearTimeout(timeout);
+  }, [query]);
+
+  const handleShare = async (content: ContentType) => {
+    try {
+      await Haptics.selectionAsync();
+      await Share.share({
+        message: `Regarde ce que j'ai trouvé sur Slash ! 🚀\n${content.product.title}\n${content.url}`,
+      });
+    } catch (e) {
+      console.log(e);
+    }
+  };
+
+  const handleToggleBookmark = (item: ContentType) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    toggleRegisterContent(item);
+  };
+
+  return (
+    <View style={styles.container}>
+      <FlatList
+        data={CONTENTS}
+        keyExtractor={(item, index) => `${item.product.id}`}
+        renderItem={({ item }) => (
+          <FeedItem
+            item={item}
+            isContentRegistered={isContentRegistered}
+            onToggleRegister={handleToggleBookmark}
+            onShare={handleShare}
+          />
         )}
+        // snapToInterval={height} de Dimensions.get("screen")
+        snapToInterval={height}
+        snapToAlignment="start"
+        decelerationRate="fast"
+        disableIntervalMomentum={true}
+        showsVerticalScrollIndicator={false}
+        // DÉTECTION
+        onViewableItemsChanged={onViewableItemsChanged}
+        viewabilityConfig={viewabilityConfig}
+        onEndReached={() => {
+          if (!loading && hasMore) getResponse();
+          if (!loading && !hasMore) getResponse(true); // Loop
+        }}
+        onEndReachedThreshold={0.5}
+        removeClippedSubviews={true}
       />
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: "#000" },
+  itemContainer: { height: height, width: width },
+  headerOverlay: {
+    position: "absolute",
+    top: 60,
+    left: 20,
+    zIndex: 10,
+  },
+  profileContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  profileBorder: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    padding: 2,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  shopLogoMini: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#000",
+  },
+  shopName: {
+    color: "#FFF",
+    fontWeight: "bold",
+    fontSize: 16,
+    textShadowColor: "rgba(0,0,0,0.5)",
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 3,
+  },
+  followText: {
+    color: "rgba(255,255,255,0.7)",
+    fontSize: 12,
+  },
+  rightActions: {
+    position: "absolute",
+    right: 15,
+    bottom: height * 0.28,
+    gap: 18,
+    alignItems: "center",
+  },
+  iconBtn: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.15)",
+  },
+  bottomContent: {
+    position: "absolute",
+    bottom: 60,
+    left: 0,
+    right: 0,
+    paddingHorizontal: 20,
+  },
+  productTitle: {
+    color: "#FFF",
+    fontSize: 26,
+    fontWeight: "900",
+    marginBottom: 6,
+    textShadowColor: "rgba(0,0,0,0.5)",
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 4,
+  },
+  productDescription: {
+    color: "#CCC",
+    fontSize: 14,
+    marginBottom: 15,
+    lineHeight: 20,
+  },
+  tagContainer: {
+    flexDirection: "row",
+    gap: 10,
+    marginBottom: 20,
+  },
+  tag: {
+    color: THEME.primary,
+    fontWeight: "700",
+    fontSize: 13,
+    backgroundColor: "rgba(0,0,0,0.3)",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  buyButton: {
+    backgroundColor: THEME.primary,
+    height: 64,
+    borderRadius: 20,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 20,
+    shadowColor: THEME.primary,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.4,
+    shadowRadius: 12,
+    elevation: 10,
+  },
+  buyButtonTextContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  buyButtonText: {
+    color: "#000",
+    fontWeight: "900",
+    fontSize: 17,
+  },
+  discountBadge: {
+    backgroundColor: "#000",
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 10,
+  },
+  discountText: {
+    color: "#FFF",
+    fontWeight: "bold",
+    fontSize: 13,
+  },
+});

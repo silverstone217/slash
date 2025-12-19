@@ -1,6 +1,6 @@
 import { ProfileContentOptions } from "@/components/ProfileContentOptions";
 import { useUserStore } from "@/lib/store";
-import { FONTS, TEXT_SIZE, THEME } from "@/lib/styles";
+import { FONTS, THEME } from "@/lib/styles";
 import {
   capitalizeText,
   returnCurrencySymbol,
@@ -9,8 +9,9 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import React, { useState } from "react";
+import React from "react";
 import {
+  Dimensions,
   FlatList,
   Image,
   Pressable,
@@ -21,134 +22,141 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+const { width } = Dimensions.get("window");
+
 const ProfileScreen = () => {
   const router = useRouter();
   const { username, contentsRegistered } = useUserStore();
-  const [isVisible, setVisible] = useState(false);
+
+  const renderHeader = () => (
+    <View style={styles.profileSection}>
+      <View style={styles.avatarContainer}>
+        <LinearGradient
+          colors={[THEME.primary, THEME.accent]}
+          style={styles.avatarGradient}
+        >
+          <View style={styles.avatarInner}>
+            <Ionicons name="person" size={50} color="#FFF" />
+          </View>
+        </LinearGradient>
+      </View>
+
+      <Text style={styles.username}>
+        {capitalizeText(username!) || "Explorateur"}
+      </Text>
+
+      {/* Stats Row */}
+      <View style={styles.statsRow}>
+        <View style={styles.statItem}>
+          <Text style={styles.statNumber}>{contentsRegistered.length}</Text>
+          <Text style={styles.statLabel}>Favoris</Text>
+        </View>
+        <View style={[styles.statItem, styles.statDivider]}>
+          <Text style={styles.statNumber}>0</Text>
+          <Text style={styles.statLabel}>Boutiques</Text>
+        </View>
+      </View>
+
+      <Text style={styles.sectionTitle}>Mes enregistrements</Text>
+    </View>
+  );
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* 🔙 Header */}
-      <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => router.back()}
-          activeOpacity={0.7}
-        >
-          <Ionicons name="chevron-back" size={24} color={THEME.text} />
+      {/* 🔙 App Bar */}
+      <View style={styles.topBar}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.roundBtn}>
+          <Ionicons name="arrow-back" size={24} color={THEME.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Profil</Text>
-        <View style={{ width: 24 }} />
-      </View>
-      {/* 👤 Avatar + Username */}
-      <View style={styles.profileSection}>
-        <View style={styles.avatarWrapper}>
-          <LinearGradient
-            colors={["#ff9a9e", "#fad0c4"]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.gradientCircle}
-          />
-          <View style={styles.avatarInner}>
-            <Ionicons name="person" size={42} color={THEME.text} />
-          </View>
-        </View>
-        <Text style={styles.username}>
-          {capitalizeText(username!) || "Utilisateur"}
-        </Text>
+        <TouchableOpacity style={styles.roundBtn}>
+          <Ionicons name="settings-outline" size={22} color={THEME.text} />
+        </TouchableOpacity>
       </View>
 
-      {/* 📦 Liste des produits */}
       <FlatList
         data={contentsRegistered}
         numColumns={2}
-        columnWrapperStyle={{ justifyContent: "space-between" }}
-        contentContainerStyle={styles.gridContainer}
-        keyExtractor={(item, index) =>
-          item.product.id.toString() + index.toString()
-        }
+        ListHeaderComponent={renderHeader}
+        columnWrapperStyle={styles.columnWrapper}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        keyExtractor={(item) => item.product.id.toString()}
         renderItem={({ item }) => (
-          <Pressable
-            style={styles.card}
-            android_ripple={{ color: "rgba(255,255,255,0.05)" }}
-            // onPress={() =>
-            //   router.push({
-            //     pathname: "/(main)",
-            //     params: { scrollToId: item.product.id },
-            //   })
-            // }
-          >
+          <Pressable style={styles.card}>
             <Image
               source={{ uri: item.product.images[0] }}
-              style={styles.productImage}
-              resizeMode="cover"
+              style={styles.cardImage}
             />
-
-            <View style={styles.cardInfo}>
-              <Text style={styles.productTitle} numberOfLines={1}>
-                {capitalizeText(item.product.title)}
+            <LinearGradient
+              colors={["transparent", "rgba(0,0,0,0.8)"]}
+              style={styles.cardGradient}
+            />
+            <View style={styles.cardContent}>
+              <Text style={styles.cardPrice}>
+                {returnFormatedMoney(item.product.price)}{" "}
+                {returnCurrencySymbol(item.product.currency)}
               </Text>
-
-              <View style={styles.priceRow}>
-                <Text style={styles.price}>
-                  {returnFormatedMoney(item.product.price)}
-                </Text>
-                <Text style={styles.currency}>
-                  {returnCurrencySymbol(item.product.currency)}
-                </Text>
-              </View>
-
-              <View style={styles.footerRow}>
-                <Text style={styles.shopName} numberOfLines={1}>
+              <View style={styles.cardFooter}>
+                <Text style={styles.cardShop} numberOfLines={1}>
                   {capitalizeText(item.shop.name)}
                 </Text>
-
                 <ProfileContentOptions content={item} />
               </View>
             </View>
           </Pressable>
         )}
+        ListEmptyComponent={
+          <View style={styles.emptyContainer}>
+            <Ionicons name="bookmark-outline" size={60} color={THEME.border} />
+            <Text style={styles.emptyText}>
+              Aucun produit enregistré pour le moment.
+            </Text>
+          </View>
+        }
       />
     </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: THEME.background,
-  },
-  header: {
+  container: { flex: 1, backgroundColor: THEME.background },
+  topBar: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 20,
-    marginTop: 10,
+    height: 60,
   },
-  backButton: {
-    padding: 6,
-    borderRadius: 50,
+  roundBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: THEME.border, // ou transparent
+    justifyContent: "center",
+    alignItems: "center",
   },
   headerTitle: {
+    fontSize: 18,
     fontFamily: FONTS.heading,
-    fontSize: TEXT_SIZE.large,
     color: THEME.text,
   },
   profileSection: {
     alignItems: "center",
-    marginTop: 30,
-    marginBottom: 15,
+    paddingVertical: 20,
   },
-  avatarWrapper: {
+  avatarContainer: {
     width: 110,
     height: 110,
     borderRadius: 55,
+    padding: 3,
+    backgroundColor: THEME.border,
+  },
+  avatarGradient: {
+    flex: 1,
+    borderRadius: 55,
     justifyContent: "center",
     alignItems: "center",
-  },
-  gradientCircle: {
-    ...StyleSheet.absoluteFillObject,
-    borderRadius: 55,
   },
   avatarInner: {
     width: 100,
@@ -157,73 +165,101 @@ const styles = StyleSheet.create({
     backgroundColor: THEME.background,
     justifyContent: "center",
     alignItems: "center",
-    shadowColor: "#000",
-    shadowOpacity: 0.1,
-    shadowRadius: 5,
-    elevation: 5,
   },
   username: {
-    marginTop: 12,
-    fontSize: TEXT_SIZE.large,
-    fontFamily: FONTS.heading,
+    marginTop: 15,
+    fontSize: 22,
+    fontWeight: "bold",
     color: THEME.text,
   },
-  gridContainer: {
-    paddingHorizontal: 16,
-    paddingBottom: 100,
-    paddingTop: 10,
+  statsRow: {
+    flexDirection: "row",
+    marginTop: 20,
+    backgroundColor: THEME.border,
+    borderRadius: 15,
+    paddingVertical: 10,
+    paddingHorizontal: 30,
+  },
+  statItem: {
+    alignItems: "center",
+    paddingHorizontal: 20,
+  },
+  statDivider: {
+    borderLeftWidth: 1,
+    borderLeftColor: "rgba(255,255,255,0.1)",
+  },
+  statNumber: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: THEME.text,
+  },
+  statLabel: {
+    fontSize: 12,
+    color: THEME.secondary,
+  },
+  sectionTitle: {
+    alignSelf: "flex-start",
+    marginLeft: 20,
+    marginTop: 30,
+    fontSize: 18,
+    fontWeight: "bold",
+    color: THEME.text,
+  },
+  scrollContent: {
+    paddingBottom: 50,
+  },
+  columnWrapper: {
+    paddingHorizontal: 15,
+    justifyContent: "space-between",
+    marginTop: 15,
   },
   card: {
-    width: "48%",
-    backgroundColor: THEME.border,
-    borderRadius: 16,
+    width: width / 2 - 22,
+    height: 240,
+    borderRadius: 20,
     overflow: "hidden",
-    marginBottom: 16,
-    elevation: 3,
+    backgroundColor: THEME.border,
   },
-  productImage: {
+  cardImage: {
     width: "100%",
-    height: 160,
+    height: "100%",
   },
-  cardInfo: {
-    padding: 10,
+  cardGradient: {
+    ...StyleSheet.absoluteFillObject,
   },
-  productTitle: {
-    color: THEME.text,
-    fontFamily: FONTS.subheading,
-    fontSize: TEXT_SIZE.small,
-    marginBottom: 3,
+  cardContent: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    padding: 12,
   },
-  priceRow: {
-    flexDirection: "row",
-    alignItems: "center",
+  cardPrice: {
+    color: "#FFF",
+    fontWeight: "bold",
+    fontSize: 15,
   },
-  price: {
-    color: THEME.primary,
-    fontFamily: FONTS.subheading,
-    fontSize: TEXT_SIZE.small,
-  },
-  currency: {
-    marginLeft: 2,
-    color: THEME.primary,
-    fontSize: TEXT_SIZE.small - 3,
-    fontFamily: FONTS.subheading,
-  },
-  footerRow: {
+  cardFooter: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginTop: 6,
+    marginTop: 4,
   },
-  shopName: {
+  cardShop: {
+    color: "rgba(255,255,255,0.7)",
+    fontSize: 11,
+    flex: 1,
+  },
+  emptyContainer: {
+    alignItems: "center",
+    marginTop: 50,
+    paddingHorizontal: 40,
+  },
+  emptyText: {
     color: THEME.secondary,
-    fontSize: TEXT_SIZE.small - 3,
-    fontFamily: FONTS.body,
-  },
-  iconButton: {
-    backgroundColor: "rgba(0,0,0,0.35)",
-    borderRadius: 50,
-    padding: 5,
+    textAlign: "center",
+    marginTop: 10,
+    fontSize: 14,
   },
 });
 

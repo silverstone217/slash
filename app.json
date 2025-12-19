@@ -4,11 +4,9 @@
     "slug": "slash",
     "version": "1.0.0",
     "orientation": "portrait",
-  
     "scheme": "slash",
     "userInterfaceStyle": "dark",
     "newArchEnabled": true,
-
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.silverstone217.slash",
@@ -16,13 +14,12 @@
         "applinks:otekis.com",
         "applinks:www.otekis.com"
       ],
-      "icon" :{
+      "icon": {
         "dark": "./assets/icons/ios-dark.png",
         "light": "./assets/icons/ios-light.png",
         "tinted": "./assets/icons/ios-tinted.png"
       }
     },
-
     "android": {
       "adaptiveIcon": {
         "backgroundColor": "#2C2C2C",
@@ -37,19 +34,28 @@
         {
           "action": "VIEW",
           "data": [
-            { "scheme": "https", "host": "otekis.com", "pathPrefix": "/" },
-            { "scheme": "https", "host": "www.otekis.com", "pathPrefix": "/" }
+            {
+              "scheme": "https",
+              "host": "otekis.com",
+              "pathPrefix": "/"
+            },
+            {
+              "scheme": "https",
+              "host": "www.otekis.com",
+              "pathPrefix": "/"
+            }
           ],
-          "category": ["BROWSABLE", "DEFAULT"]
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
         }
       ]
     },
-
     "web": {
       "output": "static",
       "favicon": "./assets/images/favicon.png"
     },
-
     "plugins": [
       "expo-router",
       [
@@ -65,14 +71,14 @@
         }
       ],
       "expo-font",
-      "expo-audio"
+      "expo-audio",
+      "expo-web-browser",
+      "expo-asset"
     ],
-
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
     },
-
     "extra": {
       "router": {},
       "eas": {

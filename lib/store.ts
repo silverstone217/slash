@@ -1,7 +1,7 @@
+import { ContentType } from "@/types"; // ✅ importe ton type de contenu
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
-import { ContentType } from "@/types"; // ✅ importe ton type de contenu
 
 type Preferences = {
   showAds: boolean;
@@ -16,6 +16,8 @@ type UserState = {
   isNewUser: boolean;
   viewedProductIds: string[];
   contentsRegistered: ContentType[];
+
+  mode: "free" | "premium";
 
   // 🔹 actions
   setUsername: (name: string) => void;
@@ -44,14 +46,29 @@ export const useUserStore = create<UserState>()(
       isNewUser: true,
       viewedProductIds: [],
       contentsRegistered: [],
+      mode: "free",
 
-      addViewedProductId: (id) =>
-        set((state) => {
-          if (state.viewedProductIds.includes(id)) return state;
-          return {
-            viewedProductIds: [...state.viewedProductIds, id],
-          };
-        }),
+      addViewedProductId: (id) => {
+        const currentIds = get().viewedProductIds;
+
+        if (currentIds.includes(id)) {
+          // console.log("ID déjà présent, on ignore");
+          return;
+        }
+
+        // FORCE la création d'un nouveau tableau pour que Zustand et Persist détectent le changement
+        const updatedIds = [...currentIds, id];
+
+        set({ viewedProductIds: updatedIds });
+
+        // LOG CRUCIAL : Vérifie si ce chiffre augmente dans ton terminal
+        console.log(
+          "✅ ID ajouté :",
+          id,
+          "| Nouveau Total :",
+          updatedIds.length
+        );
+      },
 
       resetViewedProducts: () => set({ viewedProductIds: [] }),
 
