@@ -101,7 +101,9 @@ const ProfileScreen = () => {
                 <Text style={styles.cardShop} numberOfLines={1}>
                   {capitalizeText(item.shop.name)}
                 </Text>
-                <ProfileContentOptions content={item} />
+                {item.product.origin === "otekis" && (
+                  <ProfileContentOptions content={item} />
+                )}
               </View>
             </View>
           </Pressable>

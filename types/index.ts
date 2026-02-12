@@ -12,6 +12,7 @@ export interface ProductType {
   discountPercentage?: number;
   currency: "CDF" | "USD";
   target: "man" | "woman" | "kids" | "unisex";
+  origin: "otekis" | "slash-web" | "";
 }
 
 export interface ShopType {
@@ -20,6 +21,7 @@ export interface ShopType {
   description: string;
   logo: string;
   slug: string;
+  contact?: string;
 }
 
 export interface ContentType {

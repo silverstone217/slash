@@ -1,3 +1,4 @@
+import { ContactSellerOnWhatsapp } from "@/components/contactSellerOnWhatsapp";
 import { MoreOptionsButton } from "@/components/MoreOptionsButton";
 import { useUserStore } from "@/lib/store";
 import { FONTS, THEME } from "@/lib/styles";
@@ -82,7 +83,10 @@ const FeedItem = memo(function FeedItem({
       {/* --- Header : Shop Info --- */}
       <View style={styles.headerOverlay}>
         <TouchableOpacity
-          onPress={() => router.navigate(`${SITE_URL}/${item.shop.slug}`)}
+          onPress={() =>
+            item.product.origin === "otekis" &&
+            router.navigate(`${SITE_URL}/${item.shop.slug}`)
+          }
           style={styles.profileContainer}
           activeOpacity={0.8}
         >
@@ -99,7 +103,9 @@ const FeedItem = memo(function FeedItem({
             <Text style={styles.shopName}>
               {capitalizeText(item.shop.name)}
             </Text>
-            <Text style={styles.followText}>Voir la boutique</Text>
+            {item.product.origin === "otekis" && (
+              <Text style={styles.followText}>Voir la boutique</Text>
+            )}
           </View>
         </TouchableOpacity>
       </View>
@@ -180,26 +186,36 @@ const FeedItem = memo(function FeedItem({
           </Text>
         </View>
 
-        <TouchableOpacity
-          activeOpacity={0.9}
-          onPress={() => Linking.openURL(item.url)}
-          style={styles.buyButton}
-        >
-          <View style={styles.buyButtonTextContainer}>
-            <Ionicons name="cart" size={22} color="#000" />
-            <Text style={styles.buyButtonText}>
-              Acheter • {returnFormatedMoney(item.product.price)}{" "}
-              {returnCurrencySymbol(item.product.currency)}
-            </Text>
-          </View>
-          {item.product.discountPercentage && (
-            <View style={styles.discountBadge}>
-              <Text style={styles.discountText}>
-                -{item.product.discountPercentage}%
+        {item.product.origin === "otekis" ? (
+          <TouchableOpacity
+            activeOpacity={0.9}
+            onPress={() => Linking.openURL(item.url)}
+            style={styles.buyButton}
+          >
+            <View style={styles.buyButtonTextContainer}>
+              <Ionicons name="cart" size={22} color="#000" />
+              <Text style={styles.buyButtonText}>
+                Acheter • {returnFormatedMoney(item.product.price)}{" "}
+                {returnCurrencySymbol(item.product.currency)}
               </Text>
             </View>
-          )}
-        </TouchableOpacity>
+            {item.product.discountPercentage && (
+              <View style={styles.discountBadge}>
+                <Text style={styles.discountText}>
+                  -{item.product.discountPercentage}%
+                </Text>
+              </View>
+            )}
+          </TouchableOpacity>
+        ) : (
+          <ContactSellerOnWhatsapp
+            currency={item.product.currency}
+            image={item.product.images[0]}
+            name={item.product.title}
+            price={item.product.price}
+            whatsapp={item.shop.contact ?? ""}
+          />
+        )}
       </View>
     </View>
   );
@@ -257,7 +273,7 @@ export default function FeedScreen() {
 
       const item = fullyVisible.item as ContentType;
       addViewedProductId(item.product.id);
-    }
+    },
   ).current;
 
   const getResponse = useCallback(
@@ -268,7 +284,7 @@ export default function FeedScreen() {
       try {
         const pageToFetch = reset ? 1 : page;
         const res = await fetch(
-          `${BACKEND_URL}/products/get?${query}&page=${pageToFetch}`
+          `${BACKEND_URL}/products/get?${query}&page=${pageToFetch}`,
         );
         const data = await res.json();
         const newBatch: ContentType[] = data.CONTENTS || [];
@@ -280,10 +296,10 @@ export default function FeedScreen() {
 
         // SÉPARATION
         const notViewed = newBatch.filter(
-          (item) => !viewedIds.includes(item.product.id)
+          (item) => !viewedIds.includes(item.product.id),
         );
         const alreadyViewed = newBatch.filter((item) =>
-          viewedIds.includes(item.product.id)
+          viewedIds.includes(item.product.id),
         );
 
         // MÉLANGE DES NOUVEAUX (Pour éviter la répétition monotone)
@@ -304,7 +320,7 @@ export default function FeedScreen() {
         setLoading(false);
       }
     },
-    [page, query, loading]
+    [page, query, loading],
   );
 
   // --- EFFET DE CHARGEMENT INITIAL ---
@@ -408,9 +424,10 @@ const styles = StyleSheet.create({
   rightActions: {
     position: "absolute",
     right: 15,
-    bottom: height * 0.28,
+    bottom: height * 0.35,
     gap: 18,
     alignItems: "center",
+    zIndex: 50,
   },
   iconBtn: {
     width: 52,

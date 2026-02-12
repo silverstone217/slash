@@ -19,7 +19,11 @@ export const MoreOptionsButton = ({ content }: { content: any }) => {
   const [visible, setVisible] = useState(false);
 
   const handleCopyLink = async () => {
-    await Clipboard.setStringAsync(content.url);
+    await Clipboard.setStringAsync(
+      content.product.origin === "otekis"
+        ? content.url
+        : content.shop.contact.replace(/^0/, "+243"),
+    );
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     if (Platform.OS === "android") {
       ToastAndroid.show("Lien copié !", ToastAndroid.SHORT);
@@ -28,6 +32,14 @@ export const MoreOptionsButton = ({ content }: { content: any }) => {
   };
 
   const handleOpenSite = async () => {
+    if (content.product.origin !== "otekis") {
+      const phone = content.shop.contact.replace(/^0/, "+243");
+      const message = "Bonjour, je suis interessé par un de vos articles ";
+      const url = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+
+      await Linking.openURL(url);
+      return;
+    }
     await Linking.openURL(content.url);
     setVisible(false);
   };
@@ -77,12 +89,20 @@ export const MoreOptionsButton = ({ content }: { content: any }) => {
 
             <Option
               icon="link-outline"
-              label="Copier le lien"
+              label={
+                content.product.origin === "otekis"
+                  ? "Copier le lien"
+                  : "Copier le numero"
+              }
               onPress={handleCopyLink}
             />
             <Option
               icon="open-outline"
-              label="Ouvrir sur le site"
+              label={
+                content.product.origin === "otekis"
+                  ? "Ouvrir sur le site"
+                  : "Ecrire sur Whatsapp"
+              }
               onPress={handleOpenSite}
             />
             <Option
