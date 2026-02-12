@@ -1,4 +1,6 @@
+import OfflineScreen from "@/components/OfflineBanner";
 import UsernameInitializer from "@/components/UsernameInitializer";
+import { useIsConnected } from "@/hooks/useIsConnected";
 import { useUserStore } from "@/lib/store";
 import { Inter_400Regular, Inter_500Medium } from "@expo-google-fonts/inter";
 import {
@@ -43,6 +45,12 @@ export default function RootLayout() {
   // useEffect(() => {
   //   AsyncStorage.clear().then(() => console.log("✅ AsyncStorage vidé !"));
   // }, []);
+
+  const isConnected = useIsConnected();
+
+  if (!isConnected) {
+    return <OfflineScreen />;
+  }
 
   // IF FONTS ARE NOT LOADED, WE DO NOT RENDER ANYTHING (SPLASH SCREEN IS STILL VISIBLE)
   if (!fontsLoaded) {

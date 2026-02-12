@@ -1,5 +1,5 @@
 import { FONTS, TEXT_SIZE, THEME } from "@/lib/styles";
-import { Feather, MaterialIcons, FontAwesome5 } from "@expo/vector-icons";
+import { Feather, MaterialIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient"; // Pense à l'installer : npx expo install expo-linear-gradient
 import React, { useEffect, useRef } from "react";
 import { Animated, Dimensions, StyleSheet, View, Text } from "react-native";
@@ -199,7 +199,7 @@ const styles = StyleSheet.create({
     letterSpacing: 4,
   },
   tagline: {
-    fontSize: 18,
+    fontSize: TEXT_SIZE.large,
     color: "#888",
     marginTop: 10,
     fontFamily: FONTS.body,
