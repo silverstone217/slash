@@ -1,51 +1,228 @@
-# Welcome to your Expo app 👋
+# 🚀 Slash – Social Commerce Infinite Feed App
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+**Slash** is a modern mobile social commerce application built with **Expo (SDK 54+)**, **React Native**, and **TypeScript**.
 
-## Get started
+It delivers a TikTok-style infinite scrolling experience where users discover products in a full-screen vertical feed and instantly contact sellers via WhatsApp or external shop links.
 
-1. Install dependencies
+---
 
-   ```bash
-   npm install
-   ```
+## 📱 Concept
 
-2. Start the app
+Slash reimagines mobile commerce through a **direct-to-seller interaction model**.
 
-   ```bash
-   npx expo start
-   ```
+Instead of traditional cart and checkout systems, users:
 
-In the output, you'll find options to open the app in a
+- Scroll through immersive full-screen product images
+- Discover one product at a time
+- Tap **Order** to directly contact the seller
+- Get redirected to:
+  - WhatsApp (if the seller provided a number)
+  - An external store link (if available)
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+This approach prioritizes simplicity, speed, and social commerce dynamics.
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+---
 
-## Get a fresh project
+## 🧱 Tech Stack
 
-When you're ready, run:
+### Core
 
-```bash
-npm run reset-project
+- Expo SDK 54+
+- React Native
+- TypeScript
+
+### State & Storage
+
+- Zustand (lightweight global state management)
+- AsyncStorage (persistent local storage)
+
+### Architecture Principles
+
+- Functional components with hooks
+- Centralized store logic
+- Modular folder structure
+- Reusable UI components
+- Performance-optimized infinite lists
+
+---
+
+## 🔥 Key Features
+
+### 🔄 Infinite Vertical Product Feed
+
+- Full-screen immersive experience
+- Smooth virtualization
+- Lazy loading strategy
+- Optimized re-render control
+
+### 🛒 Direct Purchase Flow
+
+Each product includes an **Order** button.
+
+Redirection logic:
+
+1. If `whatsappNumber` exists → Generate WhatsApp deep link
+2. Else if `externalLink` exists → Open vendor website
+3. Else → Graceful fallback handling
+
+Demonstrates:
+
+- React Native Linking API usage
+- Conditional deep linking
+- External app navigation handling
+
+### 💾 Persistent State Management
+
+- Zustand store hydration
+- AsyncStorage persistence middleware
+- Cached state restoration on app launch
+
+### ⚡ Performance Optimizations
+
+- FlatList optimization strategy
+- Memoized components
+- Selective Zustand subscriptions
+- Reduced unnecessary global re-renders
+
+---
+
+## 🧠 State Management Strategy
+
+Slash uses **Zustand** for predictable and scalable global state management.
+
+Responsibilities handled by the store:
+
+- Fetching paginated products
+- Managing loading & pagination state
+- Triggering infinite scroll loading
+- Persisting required state locally
+
+This avoids Redux boilerplate while maintaining architectural clarity.
+
+---
+
+## 📂 Project Structure
+
+```
+src/
+ ├── app/
+ │    ├── _layout.tsx
+ │    ├── index.tsx
+ │
+ ├── screens/
+ │    ├── HomeScreen.tsx
+ │
+ ├── lib/
+ │    ├── store.ts
+ │    ├── styles.ts
+ │
+ │
+ ├── utils/
+ │    ├── data.ts
+ │    ├── functions.ts
+ │
+ └── types/
+      ├── index.ts
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+---
 
-## Learn more
+## 🔗 Deep Linking Implementation
 
-To learn more about developing your project with Expo, look at the following resources:
+When a user presses **Order**:
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+- A WhatsApp deep link is dynamically generated if a number is provided
+- Otherwise, the external store URL is opened
+- Linking API handles redirection outside the app
 
-## Join the community
+This reflects real-world mobile commerce interaction patterns and external service integration.
 
-Join our community of developers creating universal apps.
+---
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
-# slash
+## 🛠️ Installation & Setup
+
+### Clone the repository
+
+```bash
+git clone https://github.com/silverstone217/slash.git
+cd slash
+```
+
+### Install dependencies
+
+```bash
+npm install
+```
+
+### Start the Expo development server
+
+```bash
+npx expo start
+```
+
+---
+
+## 📦 Production Build (EAS)
+
+```bash
+eas build --platform android
+eas build --platform ios
+```
+
+---
+
+## 🧪 What Slash Demonstrates
+
+- Clean and modular mobile architecture
+- Scalable state management using Zustand
+- Type-safe development with TypeScript
+- Performance-aware infinite feed implementation
+- Social commerce UX patterns
+- External deep linking strategy
+
+Slash is designed as a portfolio-grade project intended for technical recruiters and engineering reviewers.
+
+---
+
+## 🌍 Repository
+
+GitHub Repository:
+
+👉 [https://github.com/silverstone217/slash](https://github.com/silverstone217/slash)
+
+---
+
+## 📲 Test the Application
+
+To test the production-ready version of Slash, download it here:
+
+👉 [https://servi-hub.vercel.app/applications/slash](https://servi-hub.vercel.app/applications/slash)
+
+---
+
+## 🚀 Future Improvements
+
+- Authentication system
+- Backend-powered pagination
+- Favorites / likes system
+<!-- * Seller verification badge -->
+- Analytics integration
+- Push notifications
+  <!-- * In-app chat system -->
+  <!-- * Monetization layer -->
+
+---
+
+## 👤 Author
+
+Silverstone217
+React Native Developer – Expo | TypeScript | Zustand
+
+---
+
+If needed, this README can be adapted to:
+
+- A more architecture-focused senior version
+- A startup pitch version
+- A technical deep-dive version
+- An interview-oriented version with design trade-offs section
